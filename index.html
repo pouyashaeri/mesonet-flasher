@@ -1,0 +1,183 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Mesonet IoTwx Flasher</title>
+  <script type="module" src="https://unpkg.com/esp-web-tools@10/dist/web/install-button.js?module"></script>
+  <style>
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body { font-family: system-ui, sans-serif; background: #0f172a; color: #e2e8f0; min-height: 100vh; display: flex; flex-direction: column; align-items: center; padding: 2rem 1rem; }
+    h1 { font-size: 1.6rem; color: #38bdf8; margin-bottom: 0.3rem; }
+    .subtitle { color: #94a3b8; margin-bottom: 2rem; font-size: 0.9rem; }
+    .tabs { display: flex; gap: 0.5rem; margin-bottom: 1.5rem; }
+    .tab { padding: 0.5rem 1.4rem; border-radius: 6px; cursor: pointer; font-weight: 600; border: 2px solid transparent; background: #1e293b; color: #94a3b8; transition: all 0.2s; }
+    .tab.active { border-color: #38bdf8; color: #38bdf8; background: #0f2236; }
+    .card { background: #1e293b; border-radius: 12px; padding: 1.8rem; width: 100%; max-width: 520px; }
+    .card h2 { font-size: 1.1rem; color: #f1f5f9; margin-bottom: 0.4rem; }
+    .card p { color: #94a3b8; font-size: 0.85rem; margin-bottom: 1.2rem; line-height: 1.5; }
+    .panel { display: none; } .panel.active { display: block; }
+    .section-label { font-size: 0.75rem; text-transform: uppercase; letter-spacing: 0.08em; color: #64748b; margin: 1.2rem 0 0.5rem; }
+    .divider { border: none; border-top: 1px solid #334155; margin: 1.4rem 0; }
+    /* ESP Web Tools button styling */
+    esp-web-install-button { --esp-tools-button-color: #0ea5e9; --esp-tools-button-text-color: white; }
+    /* RP2040 UI */
+    .btn { display: inline-flex; align-items: center; gap: 0.4rem; padding: 0.55rem 1.2rem; border-radius: 7px; font-weight: 600; font-size: 0.9rem; cursor: pointer; border: none; transition: opacity 0.2s; }
+    .btn:disabled { opacity: 0.4; cursor: not-allowed; }
+    .btn-blue  { background: #0ea5e9; color: #fff; }
+    .btn-green { background: #22c55e; color: #fff; }
+    .file-row { display: flex; align-items: center; gap: 0.7rem; flex-wrap: wrap; margin-bottom: 0.8rem; }
+    .file-label { background: #334155; color: #cbd5e1; padding: 0.45rem 0.9rem; border-radius: 6px; font-size: 0.85rem; cursor: pointer; border: 1px dashed #475569; }
+    .file-label:hover { background: #3f5268; }
+    .file-name { font-size: 0.8rem; color: #94a3b8; font-style: italic; }
+    .progress-wrap { margin-top: 1rem; display: none; }
+    .progress-wrap.visible { display: block; }
+    .progress-bar { height: 8px; background: #334155; border-radius: 4px; overflow: hidden; }
+    .progress-fill { height: 100%; background: #22c55e; width: 0%; transition: width 0.1s; }
+    .progress-label { font-size: 0.78rem; color: #94a3b8; margin-top: 0.3rem; }
+    .status { margin-top: 0.9rem; font-size: 0.85rem; padding: 0.5rem 0.8rem; border-radius: 6px; display: none; }
+    .status.visible { display: block; }
+    .status.ok   { background: #14532d; color: #86efac; }
+    .status.err  { background: #450a0a; color: #fca5a5; }
+    .status.info { background: #0c2340; color: #7dd3fc; }
+    .warning-box { background: #1c1500; border: 1px solid #854d0e; border-radius: 8px; padding: 0.8rem 1rem; font-size: 0.82rem; color: #fde68a; margin-bottom: 1rem; line-height: 1.5; }
+    .warning-box strong { color: #fbbf24; }
+  </style>
+</head>
+<body>
+
+<h1>⛅ Mesonet IoTwx Flasher</h1>
+<p class="subtitle">SIParCS 2025 · NCAR · Flash firmware directly from your browser</p>
+
+<div class="tabs">
+  <div class="tab active" onclick="switchTab('esp')">ESP Atom Lite</div>
+  <div class="tab"        onclick="switchTab('rp2040')">RP2040</div>
+</div>
+
+<!-- ═══════════════ ESP PANEL ═══════════════ -->
+<div class="card panel active" id="panel-esp">
+  <h2>ESP32 Atom Lite</h2>
+  <p>Uses ESP Web Tools over Web Serial. Works in Chrome and Edge.</p>
+
+  <div class="section-label">Option 1 — Flash pre-built firmware</div>
+  <esp-web-install-button manifest="manifest_esp.json">
+    <button slot="activate" class="btn btn-blue">⚡ Connect &amp; Flash ESP</button>
+  </esp-web-install-button>
+
+  <hr class="divider"/>
+
+  <div class="section-label">Option 2 — Upload your own .bin</div>
+  <p>Select a <code>.bin</code> file from your machine, then flash it.</p>
+
+  <!-- Custom file flash via esptool.js is complex; guide user to use the official tool -->
+  <div class="warning-box">
+    <strong>Note:</strong> For custom .bin uploads to ESP32, use
+    <a href="https://espressif.github.io/esptool-js/" target="_blank" style="color:#fbbf24">espressif.github.io/esptool-js</a>
+    — it provides a full UI for selecting offsets and custom files.
+    The pre-built button above handles the Mesonet firmware automatically.
+  </div>
+</div>
+
+<!-- ═══════════════ RP2040 PANEL ═══════════════ -->
+<div class="card panel" id="panel-rp2040">
+  <h2>RP2040 (Pico / Custom Board)</h2>
+  <p>Uses WebUSB to write UF2 blocks directly to the RP2040 BOOTSEL bootloader. Chrome or Edge required.</p>
+
+  <div class="warning-box">
+    <strong>Before connecting:</strong> Hold the <strong>BOOTSEL</strong> button on your board, then plug in the USB cable. The board should appear as <em>RPI-RP2</em> drive. Then click Connect below.
+  </div>
+
+  <div class="section-label">Option 1 — Flash pre-built firmware</div>
+  <div style="display:flex; gap:0.6rem; flex-wrap:wrap; margin-bottom:0.5rem;">
+    <button class="btn btn-blue" id="btn-connect-builtin" onclick="connectAndFlashBuiltin()">🔌 Connect &amp; Flash RP2040</button>
+  </div>
+
+  <hr class="divider"/>
+
+  <div class="section-label">Option 2 — Upload your own .uf2</div>
+  <div class="file-row">
+    <label class="file-label" for="uf2-input">📂 Choose .uf2 file</label>
+    <input type="file" id="uf2-input" accept=".uf2" style="display:none" onchange="onUF2Selected(this)"/>
+    <span class="file-name" id="uf2-filename">No file chosen</span>
+  </div>
+  <button class="btn btn-green" id="btn-flash-custom" onclick="connectAndFlashCustom()" disabled>⚡ Connect &amp; Flash</button>
+
+  <div class="progress-wrap" id="rp2-progress">
+    <div class="progress-bar"><div class="progress-fill" id="rp2-fill"></div></div>
+    <div class="progress-label" id="rp2-label">0 / 0 blocks</div>
+  </div>
+  <div class="status" id="rp2-status"></div>
+</div>
+
+<script type="module">
+  import { connectRP2040, flashRP2040, isWebUSBSupported } from './js/rp2040-flasher.js';
+
+  // ── Tab switching ──────────────────────────────────────────
+  window.switchTab = (tab) => {
+    document.querySelectorAll('.tab').forEach((t,i) => t.classList.toggle('active', (i===0&&tab==='esp')||(i===1&&tab==='rp2040')));
+    document.getElementById('panel-esp').classList.toggle('active', tab==='esp');
+    document.getElementById('panel-rp2040').classList.toggle('active', tab==='rp2040');
+  };
+
+  // ── RP2040 helpers ────────────────────────────────────────
+  function setStatus(msg, type='info') {
+    const el = document.getElementById('rp2-status');
+    el.textContent = msg; el.className = `status visible ${type}`;
+  }
+  function setProgress(done, total) {
+    const pct = Math.round((done/total)*100);
+    document.getElementById('rp2-fill').style.width  = pct + '%';
+    document.getElementById('rp2-label').textContent = `${done} / ${total} blocks (${pct}%)`;
+    document.getElementById('rp2-progress').classList.add('visible');
+  }
+
+  // ── File selection ─────────────────────────────────────────
+  let customUF2 = null;
+  window.onUF2Selected = (input) => {
+    const file = input.files[0];
+    if (!file) return;
+    customUF2 = file;
+    document.getElementById('uf2-filename').textContent = file.name;
+    document.getElementById('btn-flash-custom').disabled = false;
+  };
+
+  // ── Flash pre-built firmware ───────────────────────────────
+  window.connectAndFlashBuiltin = async () => {
+    if (!isWebUSBSupported()) return setStatus('WebUSB not supported. Use Chrome or Edge.', 'err');
+    try {
+      setStatus('Connecting to RP2040…', 'info');
+      await connectRP2040();
+      setStatus('Connected! Fetching firmware…', 'info');
+      const resp = await fetch('firmware/mesonet_rp2040.uf2');
+      if (!resp.ok) throw new Error('Could not fetch firmware/mesonet_rp2040.uf2');
+      const buf = await resp.arrayBuffer();
+      setStatus('Flashing…', 'info');
+      await flashRP2040(buf, setProgress);
+      setStatus('✅ Done! Device is rebooting.', 'ok');
+    } catch (e) {
+      setStatus('❌ ' + e.message, 'err');
+      console.error(e);
+    }
+  };
+
+  // ── Flash custom uploaded .uf2 ─────────────────────────────
+  window.connectAndFlashCustom = async () => {
+    if (!customUF2)  return setStatus('Please select a .uf2 file first.', 'err');
+    if (!isWebUSBSupported()) return setStatus('WebUSB not supported. Use Chrome or Edge.', 'err');
+    try {
+      setStatus('Connecting to RP2040…', 'info');
+      await connectRP2040();
+      setStatus('Connected! Reading file…', 'info');
+      const buf = await customUF2.arrayBuffer();
+      setStatus('Flashing…', 'info');
+      await flashRP2040(buf, setProgress);
+      setStatus('✅ Done! Device is rebooting.', 'ok');
+    } catch (e) {
+      setStatus('❌ ' + e.message, 'err');
+      console.error(e);
+    }
+  };
+</script>
+
+</body>
+</html>

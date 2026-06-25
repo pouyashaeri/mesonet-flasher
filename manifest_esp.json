@@ -1,0 +1,15 @@
+{
+  "name": "Mesonet IoTwx - ESP Atom Lite",
+  "version": "1.0.0",
+  "builds": [
+    {
+      "chipFamily": "ESP32",
+      "parts": [
+        {
+          "path": "firmware/mesonet_esp.bin",
+          "offset": 0x10000
+        }
+      ]
+    }
+  ]
+}
