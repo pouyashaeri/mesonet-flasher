@@ -1,23 +1,30 @@
 /**
  * patch-uf2.js
  *
- * Builds a single combined .uf2 containing firmware + LittleFS config.
+ * Patches placeholder strings directly in the firmware UF2 binary.
+ * No LittleFS needed — user info is baked into the firmware itself.
  *
- * UF2 block layout (512 bytes each):
- *   [0:32]   header  (magic, flags, addr, payload_size, seq, total, family)
- *   [32:288] payload (256 bytes of flash data)
- *   [288:508] zero padding
- *   [508:512] final magic (0x0AB16F30)
+ * The firmware has fixed-length char arrays in the Config struct:
+ *   firstname[48]    → "IOTWX_FIRSTNAME_PLACEHOLDER_____"
+ *   lastname[48]     → "IOTWX_LASTNAME_PLACEHOLDER______"
+ *   email[64]        → "IOTWX_EMAIL_PLACEHOLDER_________________________"
+ *   organization[64] → "IOTWX_ORGANIZATION_PLACEHOLDER__________________"
  *
- * CRITICAL: JSON must be written payload-slot by payload-slot (256 bytes
- * at a time), skipping the 256-byte header+padding+magic gap between slots.
- * Writing linearly overwrites the final magic bytes and corrupts the file.
+ * We find each placeholder in the UF2 payload bytes and overwrite
+ * with the user's value, null-padded to the same fixed length.
+ * The array sizes in the firmware must be >= the placeholder lengths.
  */
 
-const FIXED_JSON_SIZE = 2048;   // must match config_template.uf2 generation
-const UF2_MAGIC0      = 0x0A324655;
-const UF2_MAGIC1      = 0x9E5D5157;
-const UF2_MAGIC2      = 0x0AB16F30;
+const PLACEHOLDERS = {
+  firstname:    { marker: 'IOTWX_FIRSTNAME_PLACEHOLDER_____',              maxLen: 48 },
+  lastname:     { marker: 'IOTWX_LASTNAME_PLACEHOLDER______',              maxLen: 48 },
+  email:        { marker: 'IOTWX_EMAIL_PLACEHOLDER_________________________', maxLen: 64 },
+  organization: { marker: 'IOTWX_ORGANIZATION_PLACEHOLDER__________________', maxLen: 64 },
+};
+
+const UF2_MAGIC0 = 0x0A324655;
+const UF2_MAGIC1 = 0x9E5D5157;
+const UF2_MAGIC2 = 0x0AB16F30;
 
 function readU32LE(u8, off) {
   return (u8[off] | (u8[off+1]<<8) | (u8[off+2]<<16) | (u8[off+3]<<24)) >>> 0;
@@ -39,75 +46,128 @@ function validateUF2(u8, label) {
     if (readU32LE(u8, b)     !== UF2_MAGIC0 ||
         readU32LE(u8, b + 4) !== UF2_MAGIC1 ||
         readU32LE(u8, b+508) !== UF2_MAGIC2) {
-      throw new Error(
-        `${label}: bad UF2 magic at block ${i} (file offset ${b})\n` +
-        `  magic0=0x${readU32LE(u8,b).toString(16).padStart(8,'0')} ` +
-        `magic2=0x${readU32LE(u8,b+508).toString(16).padStart(8,'0')}`
-      );
+      throw new Error(`${label}: bad UF2 magic at block ${i}`);
     }
   }
   return blocks;
 }
 
 /**
- * Patch JSON into the config template.
- * Writes 256 bytes at a time into consecutive UF2 payload slots,
- * skipping headers, padding, and final magic.
+ * Find a ASCII string in the UF2 payload bytes (offset 32-287 of each block).
+ * Returns the absolute byte offset in the u8 array, or -1 if not found.
  */
-function patchConfigUF2(u8, configObj) {
-  const jsonText = JSON.stringify(configObj, null, 2);
-  if (jsonText.length > FIXED_JSON_SIZE)
-    throw new Error(`Config JSON is ${jsonText.length} bytes — max is ${FIXED_JSON_SIZE}.`);
+function findInPayloads(u8, searchStr) {
+  const enc     = new TextEncoder();
+  const needle  = enc.encode(searchStr);
+  const blocks  = u8.length / 512;
 
-  const enc      = new TextEncoder();
-  const newBytes = enc.encode(jsonText.padEnd(FIXED_JSON_SIZE, ' ')); // exactly 2048 bytes
-
-  // Find the first UF2 block whose payload starts with our JSON signature
-  const marker = enc.encode('{\n  "radio"');
-  let startBlock = -1;
-  const blocks = u8.length / 512;
-  outer: for (let i = 0; i < blocks; i++) {
+  for (let i = 0; i < blocks; i++) {
     const payloadStart = i * 512 + 32;
-    for (let j = 0; j < marker.length; j++) {
-      if (u8[payloadStart + j] !== marker[j]) continue outer;
-    }
-    startBlock = i;
-    break;
-  }
-  if (startBlock === -1)
-    throw new Error('Could not find JSON in config template — is firmware/config_template.uf2 correct?');
+    const payloadEnd   = i * 512 + 288;
 
-  // Write 256 bytes per block into payload slots only
-  // FIXED_JSON_SIZE=2048 = exactly 8 blocks × 256 bytes
-  for (let slot = 0; slot < FIXED_JSON_SIZE / 256; slot++) {
-    const fileOffset  = (startBlock + slot) * 512 + 32;  // payload start of each block
-    const jsonOffset  = slot * 256;
-    u8.set(newBytes.subarray(jsonOffset, jsonOffset + 256), fileOffset);
+    // Search within this payload for the start of the needle
+    outer: for (let pos = payloadStart; pos <= payloadEnd - needle.length; pos++) {
+      for (let j = 0; j < needle.length; j++) {
+        if (u8[pos + j] !== needle[j]) continue outer;
+      }
+      return pos;
+    }
+  }
+  return -1;
+}
+
+/**
+ * Patch a placeholder in the firmware UF2 with the user's value.
+ * Writes the value null-padded to maxLen bytes into the payload.
+ * Handles the case where the string spans two consecutive payload slots.
+ */
+function patchPlaceholder(u8, field, value, placeholder, maxLen) {
+  const enc       = new TextEncoder();
+  const valueBytes = enc.encode(value);
+
+  if (valueBytes.length >= maxLen) {
+    throw new Error(
+      `${field} value "${value}" is ${valueBytes.length} chars — max is ${maxLen - 1}.`
+    );
+  }
+
+  // Build the replacement: value + null terminator + zeros to fill maxLen
+  const replacement = new Uint8Array(maxLen); // all zeros
+  replacement.set(valueBytes);                 // copy value, rest stays 0
+
+  // Find placeholder start in payload regions
+  const startPos = findInPayloads(u8, placeholder);
+  if (startPos === -1) {
+    throw new Error(
+      `Could not find placeholder for "${field}" in firmware. ` +
+      `Make sure you compiled the latest version with char array fields.`
+    );
+  }
+
+  // Write replacement bytes — may span across payload boundaries
+  // Each payload is at bytes [i*512+32 .. i*512+287] within each UF2 block
+  let written = 0;
+  let filePos  = startPos;
+
+  while (written < maxLen) {
+    // Which UF2 block and offset within it?
+    const block      = Math.floor(filePos / 512);
+    const inBlock    = filePos % 512;
+
+    if (inBlock < 32 || inBlock >= 288) {
+      // We've wandered out of payload — skip to next payload
+      const nextPayloadStart = block * 512 + 32;
+      const nextBlock = (block + 1) * 512 + 32;
+      filePos = (inBlock < 32) ? nextPayloadStart : nextBlock;
+      continue;
+    }
+
+    u8[filePos] = replacement[written];
+    written++;
+    filePos++;
   }
 }
 
 /**
- * Concatenate firmware + patched config blocks, renumber seq and total in each.
+ * Patch the firmware UF2 with user config values.
+ * Returns patched ArrayBuffer.
+ */
+function patchFirmwareUF2(fwBuf, configObj) {
+  const u8 = new Uint8Array(fwBuf.slice(0)); // own copy
+  validateUF2(u8, 'firmware');
+
+  for (const [field, { marker, maxLen }] of Object.entries(PLACEHOLDERS)) {
+    const value = String(configObj?.station_info?.[field] ?? '');
+    patchPlaceholder(u8, field, value, marker, maxLen);
+  }
+
+  return u8.buffer;
+}
+
+/**
+ * Combine firmware + config template UF2 blocks into one.
+ * Renumbers seq and total in every block.
+ * (Config template provides LittleFS FS partition — optional but included
+ *  so a fresh board gets a valid FS even without a separate config flash.)
  */
 function combineAndRenumber(fwU8, cfgU8) {
   const fwBlocks  = fwU8.length  / 512;
   const cfgBlocks = cfgU8.length / 512;
   const total     = fwBlocks + cfgBlocks;
   const out       = new Uint8Array(total * 512);
-
   out.set(fwU8,  0);
   out.set(cfgU8, fwBlocks * 512);
-
   for (let i = 0; i < total; i++) {
     const b = i * 512;
-    writeU32LE(out, b + 20, i);      // block_seq
-    writeU32LE(out, b + 24, total);  // num_blocks
+    writeU32LE(out, b + 20, i);
+    writeU32LE(out, b + 24, total);
   }
   return out.buffer;
 }
 
 /**
- * Main entry: fetch firmware + template, patch JSON, return combined UF2.
+ * Main entry: fetch firmware, patch user config into it, combine with
+ * config_template for a valid LittleFS partition, return combined UF2.
  */
 export async function buildCombinedUF2(
   configObj,
@@ -126,16 +186,12 @@ export async function buildCombinedUF2(
     cfgResp.arrayBuffer(),
   ]);
 
-  const fwU8  = new Uint8Array(fwBuf);
-  const cfgU8 = new Uint8Array(cfgBuf.slice(0)); // own copy — we mutate it
+  // Patch user info into firmware binary
+  const patchedFwBuf = patchFirmwareUF2(fwBuf, configObj);
+  const patchedFwU8  = new Uint8Array(patchedFwBuf);
+  const cfgU8        = new Uint8Array(cfgBuf);
 
-  validateUF2(fwU8,  'firmware');
   validateUF2(cfgU8, 'config template');
 
-  patchConfigUF2(cfgU8, configObj);
-
-  // Validate config is still intact after patch
-  validateUF2(cfgU8, 'patched config');
-
-  return combineAndRenumber(fwU8, cfgU8);
+  return combineAndRenumber(patchedFwU8, cfgU8);
 }
