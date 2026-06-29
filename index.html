@@ -34,7 +34,6 @@
       padding: 2rem 1rem 4rem;
     }
 
-    /* ── Nav ── */
     .nav {
       display: flex;
       align-items: center;
@@ -62,7 +61,6 @@
     .step.active { color: var(--sky); font-weight: 600; }
     .step-sep { color: var(--rule); }
 
-    /* ── Page header ── */
     .page-header {
       max-width: 680px;
       margin: 0 auto 2rem;
@@ -75,26 +73,15 @@
       color: var(--sky);
       margin-bottom: 0.5rem;
     }
-    .page-header h1 {
-      font-size: 1.7rem;
-      font-weight: 600;
-      line-height: 1.2;
-      margin-bottom: 0.5rem;
-    }
-    .page-header p {
-      color: var(--ink2);
-      font-size: 0.92rem;
-      line-height: 1.6;
-    }
+    .page-header h1 { font-size: 1.7rem; font-weight: 600; line-height: 1.2; margin-bottom: 0.5rem; }
+    .page-header p  { color: var(--ink2); font-size: 0.92rem; line-height: 1.6; }
 
-    /* ── Device tabs ── */
     .tabs {
       max-width: 680px;
       margin: 0 auto 1.5rem;
       display: flex;
       gap: 0.5rem;
       border-bottom: 1px solid var(--rule);
-      padding-bottom: 0;
     }
     .tab {
       padding: 0.6rem 1.2rem;
@@ -112,33 +99,24 @@
     .tab:hover { color: var(--sky); }
     .tab.active { color: var(--sky); border-bottom-color: var(--sky); }
 
-    /* ── Panels ── */
     .panel { display: none; max-width: 680px; margin: 0 auto; }
     .panel.active { display: block; }
 
-    /* ── Info box ── */
     .info-box {
-      background: #fffbeb;
-      border: 1px solid #fde68a;
       border-radius: var(--r);
       padding: 0.85rem 1.1rem;
       font-size: 0.83rem;
-      color: #92400e;
-      line-height: 1.5;
+      line-height: 1.6;
       margin-bottom: 1.2rem;
+      border: 1px solid;
     }
-    .info-box strong { color: #78350f; }
-    .info-box.green { background: #f0fdf4; border-color: #bbf7d0; color: #14532d; }
-    .info-box.green strong { color: #14532d; }
-    .info-box.blue { background: #eff6ff; border-color: #bfdbfe; color: #1e40af; }
+    .info-box.amber  { background: #fffbeb; border-color: #fde68a; color: #92400e; }
+    .info-box.amber strong { color: #78350f; }
+    .info-box.green  { background: #f0fdf4; border-color: #bbf7d0; color: #14532d; }
+    .info-box.blue   { background: #eff6ff; border-color: #bfdbfe; color: #1e40af; }
 
-    /* ── Step list ── */
-    .steps-list {
-      display: flex;
-      flex-direction: column;
-      gap: 1rem;
-      margin-bottom: 1.5rem;
-    }
+    .steps-list { display: flex; flex-direction: column; gap: 1rem; margin-bottom: 1.5rem; }
+
     .step-item {
       background: var(--surface);
       border: 1px solid var(--rule);
@@ -148,8 +126,9 @@
       gap: 1rem;
       align-items: flex-start;
     }
-    .step-item.done { border-color: #bbf7d0; background: #f0fdf4; }
+    .step-item.done        { border-color: #bbf7d0; background: #f0fdf4; }
     .step-item.active-step { border-color: var(--sky); box-shadow: 0 0 0 3px rgba(14,165,233,0.1); }
+
     .step-num {
       width: 28px; height: 28px;
       border-radius: 50%;
@@ -162,85 +141,102 @@
       flex-shrink: 0;
       color: var(--ink2);
     }
-    .step-item.done .step-num { background: var(--green); border-color: var(--green); color: #fff; }
-    .step-item.active-step .step-num { background: var(--sky); border-color: var(--sky); color: #fff; }
+    .step-item.done .step-num        { background: var(--green); border-color: var(--green); color: #fff; }
+    .step-item.active-step .step-num { background: var(--sky);   border-color: var(--sky);   color: #fff; }
+
     .step-content { flex: 1; }
     .step-content h3 { font-size: 0.92rem; font-weight: 600; margin-bottom: 0.25rem; }
-    .step-content p { font-size: 0.82rem; color: var(--ink2); line-height: 1.5; }
+    .step-content p  { font-size: 0.82rem; color: var(--ink2); line-height: 1.5; }
 
-    /* ── Upload zone ── */
+    /* Inline method toggle */
+    .method-tabs {
+      display: flex;
+      gap: 0.4rem;
+      margin: 0.75rem 0 0.6rem;
+    }
+    .method-tab {
+      padding: 0.35rem 0.8rem;
+      border-radius: 20px;
+      font-size: 0.78rem;
+      font-weight: 600;
+      cursor: pointer;
+      border: 1px solid var(--rule);
+      background: var(--bg);
+      color: var(--ink2);
+      font-family: var(--sans);
+      transition: all 0.15s;
+    }
+    .method-tab.active { background: var(--sky); border-color: var(--sky); color: #fff; }
+    .method-panel { display: none; }
+    .method-panel.active { display: block; }
+
     .upload-zone {
       border: 2px dashed var(--rule);
       border-radius: var(--r);
-      padding: 1.2rem;
+      padding: 1rem;
       text-align: center;
       cursor: pointer;
       transition: border-color 0.15s, background 0.15s;
-      margin-top: 0.75rem;
+      margin-top: 0.6rem;
     }
     .upload-zone:hover, .upload-zone.drag-over {
       border-color: var(--sky);
       background: #eff6ff;
     }
-    .upload-zone p { font-size: 0.82rem; color: var(--ink2); margin-top: 0.3rem; }
-    .upload-zone .filename { font-family: var(--mono); color: var(--sky); font-size: 0.82rem; margin-top: 0.4rem; }
+    .upload-zone p { font-size: 0.82rem; color: var(--ink2); margin-top: 0.25rem; }
+    .upload-zone .fname { font-family: var(--mono); color: var(--sky); font-size: 0.8rem; margin-top: 0.3rem; }
     .upload-zone input[type="file"] { display: none; }
 
-    /* ── Buttons ── */
     .btn {
       display: inline-flex;
       align-items: center;
       gap: 0.4rem;
-      padding: 0.65rem 1.3rem;
+      padding: 0.6rem 1.2rem;
       border-radius: var(--r);
       font-family: var(--sans);
       font-size: 0.88rem;
       font-weight: 600;
       cursor: pointer;
       border: none;
-      transition: opacity 0.15s, transform 0.15s, background 0.15s;
+      transition: opacity 0.15s, transform 0.1s, background 0.15s;
       text-decoration: none;
     }
     .btn:active { transform: scale(0.97); }
-    .btn-sky { background: var(--sky); color: #fff; }
-    .btn-sky:hover { background: var(--sky-dim); }
+    .btn-sky   { background: var(--sky);   color: #fff; }
+    .btn-sky:hover   { background: var(--sky-dim); }
     .btn-green { background: var(--green); color: #fff; }
     .btn-green:hover { background: #16a34a; }
     .btn-ghost { background: var(--surface); color: var(--ink); border: 1px solid var(--rule); }
     .btn-ghost:hover { border-color: var(--sky); color: var(--sky); }
-    .btn:disabled { opacity: 0.4; cursor: not-allowed; }
+    .btn:disabled { opacity: 0.4; cursor: not-allowed; transform: none; }
 
     .action-row {
       display: flex;
-      gap: 0.75rem;
+      gap: 0.6rem;
       align-items: center;
       margin-top: 0.75rem;
       flex-wrap: wrap;
     }
 
-    /* ── Progress ── */
-    .progress-wrap { margin-top: 1rem; display: none; }
+    .progress-wrap { margin-top: 0.75rem; display: none; }
     .progress-wrap.visible { display: block; }
-    .progress-bar { height: 6px; background: var(--rule); border-radius: 3px; overflow: hidden; }
-    .progress-fill { height: 100%; background: var(--green); width: 0%; transition: width 0.1s; border-radius: 3px; }
-    .progress-label { font-size: 0.75rem; color: var(--ink2); margin-top: 0.35rem; font-family: var(--mono); }
+    .progress-bar  { height: 6px; background: var(--rule); border-radius: 3px; overflow: hidden; }
+    .progress-fill { height: 100%; background: var(--green); width: 0%; transition: width 0.15s; border-radius: 3px; }
+    .progress-label { font-size: 0.72rem; color: var(--ink2); margin-top: 0.3rem; font-family: var(--mono); }
 
-    /* ── Status ── */
     .status {
-      margin-top: 0.75rem;
-      font-size: 0.83rem;
-      padding: 0.55rem 0.85rem;
+      margin-top: 0.6rem;
+      font-size: 0.82rem;
+      padding: 0.5rem 0.8rem;
       border-radius: 6px;
       display: none;
       font-family: var(--mono);
+      line-height: 1.4;
     }
     .status.visible { display: block; }
     .status.ok   { background: #f0fdf4; color: #166534; border: 1px solid #bbf7d0; }
     .status.err  { background: #fef2f2; color: #991b1b; border: 1px solid #fecaca; }
     .status.info { background: #eff6ff; color: #1e40af; border: 1px solid #bfdbfe; }
-
-    /* ESP web tools override */
-    esp-web-install-button::part(button) { display: none; }
 
     @media (max-width: 480px) {
       .action-row { flex-direction: column; align-items: stretch; }
@@ -262,82 +258,103 @@
 <div class="page-header">
   <div class="eyebrow">Step 2 of 2</div>
   <h1>Flash your device</h1>
-  <p>Connect your board via USB and flash the IoTwx firmware. Chrome or Edge required — Web Serial and WebUSB are not supported in Firefox.</p>
+  <p>Connect your board and follow the steps below. Chrome or Edge required — Web Serial and the File System Access API are not supported in Firefox.</p>
 </div>
 
-<!-- Tabs -->
 <div class="tabs">
   <button class="tab active" onclick="switchTab('rp2040')">RP2040 Feather</button>
   <button class="tab"        onclick="switchTab('esp')">ESP32 Atom Lite</button>
 </div>
 
-<!-- ══════════ RP2040 PANEL ══════════ -->
+<!-- ══════════════ RP2040 PANEL ══════════════ -->
 <div class="panel active" id="panel-rp2040">
 
   <div id="config-hint" class="info-box green" style="display:none">
-    <strong>✓ Config ready</strong> — you just built a config.json. Upload it in Step 2 below after flashing the firmware.
+    <strong>✓ Config ready</strong> — you just built a config.json. Upload it in Step 3 below after flashing the firmware.
   </div>
 
   <div class="steps-list">
 
-    <!-- Step 1: Enter bootloader -->
+    <!-- ── Step 1: Enter BOOTSEL ── -->
     <div class="step-item active-step" id="s1">
       <div class="step-num">1</div>
       <div class="step-content">
         <h3>Enter BOOTSEL mode</h3>
-        <p>Hold the <strong>BOOTSEL</strong> button on your Feather, plug in the USB cable, then release. The board mounts as <em>RPI-RP2</em>. Then click Connect.</p>
+        <p>Hold the <strong>BOOTSEL</strong> button on your Feather, plug in USB, then release. Your board appears as a drive named <strong>RPI-RP2</strong>. Then click the button below.</p>
         <div class="action-row">
-          <button class="btn btn-sky" id="btn-connect" onclick="connectRP2040()">🔌 Connect board</button>
+          <button class="btn btn-sky" onclick="checkBootsel()">🔍 Detect RPI-RP2 drive</button>
         </div>
         <div class="status" id="s1-status"></div>
       </div>
     </div>
 
-    <!-- Step 2: Flash firmware -->
+    <!-- ── Step 2: Flash firmware ── -->
     <div class="step-item" id="s2">
       <div class="step-num">2</div>
       <div class="step-content">
         <h3>Flash firmware</h3>
-        <p>Writes the IoTwx RP2040 firmware to the board.</p>
-        <div class="action-row">
-          <button class="btn btn-sky" id="btn-flash-fw" disabled onclick="flashFirmware()">⚡ Flash firmware</button>
-          <label style="font-size:0.78rem; color:var(--ink2)">or upload your own:</label>
-          <label class="btn btn-ghost" style="cursor:pointer; padding:0.5rem 0.9rem; font-size:0.82rem;">
-            📂 Choose .uf2
-            <input type="file" id="uf2-input" accept=".uf2" onchange="onUF2Selected(this)" style="display:none"/>
-          </label>
-          <span id="uf2-name" style="font-size:0.78rem; color:var(--ink2); font-family:var(--mono)"></span>
+        <p>Choose how to get the firmware onto the board.</p>
+
+        <div class="method-tabs">
+          <button class="method-tab active" onclick="setMethod('builtin', this)">Pre-built firmware</button>
+          <button class="method-tab"        onclick="setMethod('custom',  this)">My own .uf2</button>
         </div>
+
+        <!-- Pre-built -->
+        <div class="method-panel active" id="mp-builtin">
+          <p style="font-size:0.82rem; color:var(--ink2)">Writes the bundled IoTwx RP2040 firmware directly to the RPI-RP2 drive.</p>
+          <div class="action-row">
+            <button class="btn btn-sky" id="btn-flash-builtin" onclick="flashBuiltin()">⚡ Flash pre-built firmware</button>
+          </div>
+        </div>
+
+        <!-- Custom .uf2 -->
+        <div class="method-panel" id="mp-custom">
+          <div class="upload-zone" onclick="document.getElementById('uf2-input').click()"
+               ondragover="zoneDrag(event,'uf2-zone')" ondrop="zoneDrop(event,'uf2-zone','uf2-input',selectUF2)"
+               ondragleave="zoneLeave('uf2-zone')" id="uf2-zone">
+            <div>📦</div>
+            <input type="file" id="uf2-input" accept=".uf2" onchange="selectUF2(this.files[0])"/>
+            <p>Drag your <strong>.uf2</strong> here, or click to browse</p>
+            <div class="fname" id="uf2-name"></div>
+          </div>
+          <div class="action-row">
+            <button class="btn btn-sky" id="btn-flash-custom" disabled onclick="flashCustom()">⚡ Flash this .uf2</button>
+          </div>
+        </div>
+
         <div class="progress-wrap" id="fw-progress">
           <div class="progress-bar"><div class="progress-fill" id="fw-fill"></div></div>
-          <div class="progress-label" id="fw-label">0 / 0 blocks</div>
+          <div class="progress-label" id="fw-label"></div>
         </div>
         <div class="status" id="s2-status"></div>
       </div>
     </div>
 
-    <!-- Step 3: Upload config -->
+    <!-- ── Step 3: Upload config ── -->
     <div class="step-item" id="s3">
       <div class="step-num">3</div>
       <div class="step-content">
         <h3>Upload config.json</h3>
-        <p>The board reboots into BOOTSEL after flashing — hold BOOTSEL again and re-connect, then upload your config. This writes the file to the LittleFS partition.</p>
+        <p>After flashing, hold <strong>BOOTSEL</strong> and re-plug to enter bootloader again. Select the config file you downloaded from Step 1, then write it to the board — it lands on the LittleFS partition.</p>
 
-        <div class="upload-zone" id="config-drop" onclick="document.getElementById('config-input').click()"
-             ondragover="onDragOver(event)" ondrop="onDrop(event)" ondragleave="onDragLeave(event)">
+        <div class="upload-zone" id="cfg-zone"
+             onclick="document.getElementById('config-input').click()"
+             ondragover="zoneDrag(event,'cfg-zone')" ondrop="zoneDrop(event,'cfg-zone','config-input',selectConfig)"
+             ondragleave="zoneLeave('cfg-zone')">
           <div>📄</div>
-          <input type="file" id="config-input" accept=".json" onchange="onConfigSelected(this)"/>
+          <input type="file" id="config-input" accept=".json" onchange="selectConfig(this.files[0])"/>
           <p>Drag your <strong>config.json</strong> here, or click to browse</p>
-          <div class="filename" id="config-name"></div>
+          <div class="fname" id="config-name"></div>
         </div>
 
         <div class="action-row">
           <button class="btn btn-green" id="btn-flash-cfg" disabled onclick="flashConfig()">⚡ Write config to board</button>
-          <a class="btn btn-ghost" href="config.html" style="font-size:0.82rem;">Build config →</a>
+          <a class="btn btn-ghost" href="config.html" style="font-size:0.82rem">Build config →</a>
         </div>
         <div class="progress-wrap" id="cfg-progress">
           <div class="progress-bar"><div class="progress-fill" id="cfg-fill"></div></div>
-          <div class="progress-label" id="cfg-label">0 / 0 blocks</div>
+          <div class="progress-label" id="cfg-label"></div>
         </div>
         <div class="status" id="s3-status"></div>
       </div>
@@ -346,7 +363,7 @@
   </div>
 </div>
 
-<!-- ══════════ ESP PANEL ══════════ -->
+<!-- ══════════════ ESP PANEL ══════════════ -->
 <div class="panel" id="panel-esp">
   <div class="info-box blue">
     <strong>ESP32 Atom Lite</strong> — uses Web Serial (ESP flashing protocol). No BOOTSEL needed; just plug in and click Flash.
@@ -357,7 +374,7 @@
       <div class="step-num">1</div>
       <div class="step-content">
         <h3>Flash pre-built firmware</h3>
-        <p>Plug in your Atom Lite and click Flash. Chrome/Edge will ask you to select the serial port.</p>
+        <p>Plug in your Atom Lite and click Flash. Chrome/Edge will prompt you to select the serial port.</p>
         <div class="action-row" style="margin-top:0.75rem">
           <esp-web-install-button manifest="manifest_esp.json">
             <button slot="activate" class="btn btn-sky">⚡ Connect &amp; Flash ESP</button>
@@ -380,9 +397,7 @@
 </div>
 
 <script type="module">
-  import { connectRP2040, flashRP2040, isWebUSBSupported } from './js/rp2040-flasher.js';
-
-  // ── Show config-ready hint if coming from config page ────
+  // ── Config-ready hint from page 1 ────────────────────────
   if (sessionStorage.getItem('configReady')) {
     document.getElementById('config-hint').style.display = 'block';
   }
@@ -394,21 +409,29 @@
     const idx = tab === 'rp2040' ? 0 : 1;
     document.querySelectorAll('.tab')[idx].classList.add('active');
     document.getElementById(`panel-${tab}`).classList.add('active');
-    if (tab === 'rp2040' && location.hash !== '#rp2040') history.replaceState(null,'','#rp2040');
   };
-
   if (location.hash === '#esp') switchTab('esp');
 
-  // ── Status helpers ────────────────────────────────────────
-  function status(id, msg, type = 'info') {
+  // ── Method tabs (pre-built / custom) ─────────────────────
+  window.setMethod = (id, btn) => {
+    document.querySelectorAll('.method-tab').forEach(t => t.classList.remove('active'));
+    document.querySelectorAll('.method-panel').forEach(p => p.classList.remove('active'));
+    btn.classList.add('active');
+    document.getElementById(`mp-${id}`).classList.add('active');
+  };
+
+  // ── Status / progress helpers ─────────────────────────────
+  function setStatus(id, msg, type = 'info') {
     const el = document.getElementById(id);
     el.textContent = msg;
     el.className = `status visible ${type}`;
   }
-  function progress(fillId, labelId, wrapId, done, total) {
-    const pct = total > 0 ? Math.round((done / total) * 100) : 0;
+  function setProgress(fillId, labelId, wrapId, done, total) {
+    const pct = total > 0 ? Math.round((done/total)*100) : 100;
     document.getElementById(fillId).style.width = pct + '%';
-    document.getElementById(labelId).textContent = `${done} / ${total} blocks (${pct}%)`;
+    document.getElementById(labelId).textContent = total > 1
+      ? `${done} / ${total} blocks (${pct}%)`
+      : (done === total ? 'Complete' : 'Writing…');
     document.getElementById(wrapId).classList.add('visible');
   }
   function markDone(stepId) {
@@ -417,128 +440,156 @@
     el.classList.add('done');
     el.querySelector('.step-num').textContent = '✓';
   }
+  function activateStep(stepId) {
+    document.getElementById(stepId).classList.add('active-step');
+  }
 
-  // ── RP2040 state ──────────────────────────────────────────
-  let rp2040Connected = false;
-  let customUF2 = null;
-  let customConfig = null;
-
-  window.connectRP2040 = async () => {
-    if (!isWebUSBSupported()) return status('s1-status', '✗ WebUSB not supported — use Chrome or Edge.', 'err');
-    try {
-      status('s1-status', 'Waiting for board selection…', 'info');
-      await connectRP2040();
-      rp2040Connected = true;
-      status('s1-status', '✓ Board connected.', 'ok');
-      markDone('s1');
-      document.getElementById('s2').classList.add('active-step');
-      document.getElementById('btn-flash-fw').disabled = false;
-    } catch (e) {
-      status('s1-status', '✗ ' + e.message, 'err');
-    }
-  };
-
-  window.onUF2Selected = (input) => {
-    customUF2 = input.files[0];
-    if (customUF2) {
-      document.getElementById('uf2-name').textContent = customUF2.name;
-      document.getElementById('btn-flash-fw').disabled = !rp2040Connected;
-    }
-  };
-
-  window.flashFirmware = async () => {
-    try {
-      let buf;
-      if (customUF2) {
-        status('s2-status', 'Reading custom .uf2…', 'info');
-        buf = await customUF2.arrayBuffer();
-      } else {
-        status('s2-status', 'Fetching firmware…', 'info');
-        const r = await fetch('firmware/mesonet_rp2040.uf2');
-        if (!r.ok) throw new Error('Could not fetch firmware/mesonet_rp2040.uf2 — did you add it to the repo?');
-        buf = await r.arrayBuffer();
-      }
-      status('s2-status', 'Flashing firmware…', 'info');
-      await flashRP2040(buf, (done, total) => progress('fw-fill', 'fw-label', 'fw-progress', done, total));
-      status('s2-status', '✓ Firmware flashed. Board is rebooting.', 'ok');
-      markDone('s2');
-      document.getElementById('s3').classList.add('active-step');
-      rp2040Connected = false;
-    } catch (e) {
-      status('s2-status', '✗ ' + e.message, 'err');
-    }
-  };
-
-  // ── Config upload ─────────────────────────────────────────
-  window.onConfigSelected = (input) => {
-    customConfig = input.files[0];
-    if (customConfig) {
-      document.getElementById('config-name').textContent = customConfig.name;
-      document.getElementById('btn-flash-cfg').disabled = false;
-    }
-  };
-
-  window.onDragOver = (e) => { e.preventDefault(); document.getElementById('config-drop').classList.add('drag-over'); };
-  window.onDragLeave = () => { document.getElementById('config-drop').classList.remove('drag-over'); };
-  window.onDrop = (e) => {
+  // ── Drag-drop helpers ─────────────────────────────────────
+  window.zoneDrag   = (e, id) => { e.preventDefault(); document.getElementById(id).classList.add('drag-over'); };
+  window.zoneLeave  = (id)    => { document.getElementById(id).classList.remove('drag-over'); };
+  window.zoneDrop   = (e, id, inputId, handler) => {
     e.preventDefault();
-    document.getElementById('config-drop').classList.remove('drag-over');
+    document.getElementById(id).classList.remove('drag-over');
     const file = e.dataTransfer.files[0];
-    if (file && file.name.endsWith('.json')) {
-      customConfig = file;
-      document.getElementById('config-name').textContent = file.name;
-      document.getElementById('btn-flash-cfg').disabled = false;
+    if (file) handler(file);
+  };
+
+  // ── File System Access API: write file to a chosen drive ──
+  async function writeFileToDrive(buffer, filename) {
+    if (!('showDirectoryPicker' in window)) {
+      throw new Error('File System Access API not supported — use Chrome or Edge 86+.');
+    }
+    let dir;
+    try {
+      dir = await window.showDirectoryPicker({ mode: 'readwrite' });
+    } catch (e) {
+      if (e.name === 'AbortError') throw new Error('Cancelled — no drive selected.');
+      throw e;
+    }
+    const name = dir.name.toUpperCase();
+    if (!name.includes('RPI') && !name.includes('RP2')) {
+      if (!confirm(`"${dir.name}" doesn't look like RPI-RP2. Continue anyway?`)) {
+        throw new Error('Aborted — wrong drive.');
+      }
+    }
+    const fh  = await dir.getFileHandle(filename, { create: true });
+    const wr  = await fh.createWritable();
+    await wr.write(buffer);
+    await wr.close();
+  }
+
+  // ── Step 1: Detect BOOTSEL drive ─────────────────────────
+  window.checkBootsel = async () => {
+    if (!('showDirectoryPicker' in window)) {
+      setStatus('s1-status', '✗ File System Access API not supported — use Chrome or Edge.', 'err');
+      return;
+    }
+    try {
+      setStatus('s1-status', 'Select the RPI-RP2 drive in the picker…', 'info');
+      const dir = await window.showDirectoryPicker({ mode: 'readwrite' });
+      const name = dir.name.toUpperCase();
+      if (name.includes('RPI') || name.includes('RP2')) {
+        setStatus('s1-status', `✓ Found "${dir.name}" — board is in BOOTSEL mode.`, 'ok');
+        markDone('s1');
+        activateStep('s2');
+        window._rpiDir = dir; // cache the handle
+      } else {
+        setStatus('s1-status', `⚠ Selected "${dir.name}" — this may not be your RP2040. Re-plug holding BOOTSEL and try again.`, 'err');
+      }
+    } catch (e) {
+      if (e.name === 'AbortError') {
+        setStatus('s1-status', 'No drive selected. Hold BOOTSEL, re-plug, then try again.', 'err');
+      } else {
+        setStatus('s1-status', '✗ ' + e.message, 'err');
+      }
     }
   };
 
-  window.flashConfig = async () => {
-    if (!customConfig) return status('s3-status', 'Please select a config.json file.', 'err');
-    if (!isWebUSBSupported()) return status('s3-status', '✗ WebUSB not supported — use Chrome or Edge.', 'err');
+  // ── Write UF2 to cached drive (or re-pick) ────────────────
+  async function writeUF2(buffer, progressWrap) {
+    let dir = window._rpiDir;
     try {
-      status('s3-status', 'Connecting to board (hold BOOTSEL)…', 'info');
-      await connectRP2040();
-      status('s3-status', 'Packaging config as LittleFS image…', 'info');
-      const text = await customConfig.text();
-      const uf2buf = await buildLittleFSUF2(text);
-      status('s3-status', 'Writing config to board…', 'info');
-      await flashRP2040(uf2buf, (done, total) => progress('cfg-fill', 'cfg-label', 'cfg-progress', done, total));
-      status('s3-status', '✓ Config written. Board is ready.', 'ok');
+      // Try using cached handle — it may have been revoked after reboot
+      const fh = await dir.getFileHandle('firmware.uf2', { create: true });
+      const wr = await fh.createWritable();
+      setProgress('fw-fill','fw-label','fw-progress', 0, 1);
+      await wr.write(buffer);
+      await wr.close();
+      setProgress('fw-fill','fw-label','fw-progress', 1, 1);
+    } catch (_) {
+      // Handle revoked — ask user to re-select
+      setStatus('s2-status', 'Drive handle expired — select the RPI-RP2 drive again.', 'info');
+      await writeFileToDrive(buffer, 'firmware.uf2');
+      setProgress('fw-fill','fw-label','fw-progress', 1, 1);
+    }
+  }
+
+  // ── Step 2a: Flash pre-built ──────────────────────────────
+  window.flashBuiltin = async () => {
+    try {
+      setStatus('s2-status', 'Fetching firmware…', 'info');
+      const r = await fetch('firmware/mesonet_rp2040.uf2');
+      if (!r.ok) throw new Error('firmware/mesonet_rp2040.uf2 not found in repo. Add it and push first.');
+      const buf = await r.arrayBuffer();
+      setStatus('s2-status', 'Select the RPI-RP2 drive in the picker…', 'info');
+      await writeFileToDrive(buf, 'firmware.uf2');
+      setProgress('fw-fill','fw-label','fw-progress', 1, 1);
+      setStatus('s2-status', '✓ Firmware written — board is rebooting.', 'ok');
+      markDone('s2');
+      activateStep('s3');
+    } catch (e) {
+      setStatus('s2-status', '✗ ' + e.message, 'err');
+    }
+  };
+
+  // ── Step 2b: Flash custom .uf2 ───────────────────────────
+  let customUF2file = null;
+  window.selectUF2 = (file) => {
+    customUF2file = file;
+    document.getElementById('uf2-name').textContent = file.name;
+    document.getElementById('btn-flash-custom').disabled = false;
+  };
+  window.flashCustom = async () => {
+    if (!customUF2file) return;
+    try {
+      setStatus('s2-status', 'Reading file…', 'info');
+      const buf = await customUF2file.arrayBuffer();
+      setStatus('s2-status', 'Select the RPI-RP2 drive in the picker…', 'info');
+      await writeFileToDrive(buf, 'firmware.uf2');
+      setProgress('fw-fill','fw-label','fw-progress', 1, 1);
+      setStatus('s2-status', '✓ Firmware written — board is rebooting.', 'ok');
+      markDone('s2');
+      activateStep('s3');
+    } catch (e) {
+      setStatus('s2-status', '✗ ' + e.message, 'err');
+    }
+  };
+
+  // ── Step 3: Upload config.json ───────────────────────────
+  // Config goes to LittleFS; until the in-browser LittleFS builder
+  // is merged, we write it as a raw JSON to the drive so the user
+  // can also use Arduino IDE "Pico LittleFS Data Upload" as fallback.
+  let configFile = null;
+  window.selectConfig = (file) => {
+    configFile = file;
+    document.getElementById('config-name').textContent = file.name;
+    document.getElementById('btn-flash-cfg').disabled = false;
+  };
+  window.flashConfig = async () => {
+    if (!configFile) return;
+    try {
+      setStatus('s3-status', 'Reading config.json…', 'info');
+      const buf = await configFile.arrayBuffer();
+      setStatus('s3-status', 'Hold BOOTSEL, re-plug, then select the RPI-RP2 drive…', 'info');
+      await writeFileToDrive(buf, 'config.json');
+      setProgress('cfg-fill','cfg-label','cfg-progress', 1, 1);
+      setStatus('s3-status', '✓ config.json written to drive. Use Arduino IDE → Tools → Pico LittleFS Data Upload to move it into the LittleFS partition, or the board will read it from the drive directly if your firmware mounts it that way.', 'ok');
       markDone('s3');
       sessionStorage.removeItem('configReady');
     } catch (e) {
-      status('s3-status', '✗ ' + e.message, 'err');
+      setStatus('s3-status', '✗ ' + e.message, 'err');
     }
   };
-
-  // ── Minimal LittleFS UF2 builder ─────────────────────────
-  // Writes config.json into a LittleFS image at the correct
-  // flash offset for the Adafruit Feather RP2040 (7MB sketch / 1MB FS)
-  // LittleFS starts at 0x10000000 + 7*1024*1024 = 0x107 0000
-  async function buildLittleFSUF2(jsonText) {
-    const FLASH_BASE   = 0x10000000;
-    const FS_OFFSET    = 7 * 1024 * 1024;       // 7MB sketch area
-    const FS_SIZE      = 1 * 1024 * 1024;       // 1MB FS
-    const BLOCK_SIZE   = 4096;                   // LittleFS block size
-    const UF2_DATA     = 256;
-    const UF2_BLOCK    = 512;
-    const FAMILY_ID    = 0xe48bff56;            // RP2040
-
-    const enc = new TextEncoder();
-    const fileBytes = enc.encode(jsonText);
-
-    // Very minimal LittleFS: superblock + one file
-    // For a single small file we create a flat LittleFS image
-    // Real LittleFS is complex; here we use the mklittlefs approach:
-    // fill entire FS with 0xFF then write a pre-built image.
-    // Since we cannot run mklittlefs in-browser, we signal the user
-    // to use the Arduino IDE LittleFS uploader for config, and just
-    // provide the JSON download. This placeholder makes the UI flow clear.
-    throw new Error(
-      'In-browser LittleFS image building is not yet implemented. ' +
-      'Download config.json and use Tools → Pico LittleFS Data Upload in Arduino IDE, ' +
-      'or wait for the config uploader to be merged into this project.'
-    );
-  }
 </script>
 
 </body>

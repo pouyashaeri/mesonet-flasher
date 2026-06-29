@@ -1,41 +1,40 @@
-// RP2040 WebUSB UF2 Flasher
-// Targets VID 0x2E8A (Raspberry Pi), PID 0x0003 (BOOTSEL mode)
+// RP2040 Flash Helper
+// The RP2040 BOOTSEL bootloader enumerates as USB Mass Storage —
+// Chrome blocks claimInterface on protected classes, so direct
+// WebUSB flashing is not possible. The correct method is the
+// File System Access API: write the .uf2 directly to the RPI-RP2 drive.
 
-const RP2040_VENDOR_ID  = 0x2E8A;
-const RP2040_PRODUCT_ID = 0x0003;
-const UF2_BLOCK_SIZE    = 512;
-
-let rp2040Device = null;
-
-export async function connectRP2040() {
-  rp2040Device = await navigator.usb.requestDevice({
-    filters: [{ vendorId: RP2040_VENDOR_ID, productId: RP2040_PRODUCT_ID }]
-  });
-  await rp2040Device.open();
-  if (rp2040Device.configuration === null)
-    await rp2040Device.selectConfiguration(1);
-  await rp2040Device.claimInterface(0);
-  return rp2040Device;
+export function isFileSystemAccessSupported() {
+  return 'showDirectoryPicker' in window;
 }
 
-export async function flashRP2040(uf2ArrayBuffer, onProgress) {
-  if (!rp2040Device) throw new Error("No RP2040 connected");
-
-  const data     = new Uint8Array(uf2ArrayBuffer);
-  const numBlocks = Math.floor(data.length / UF2_BLOCK_SIZE);
-
-  for (let i = 0; i < numBlocks; i++) {
-    const block = data.slice(i * UF2_BLOCK_SIZE, (i + 1) * UF2_BLOCK_SIZE);
-    // Write to EP1 OUT (RP2040 BOOTSEL MSC bulk endpoint)
-    await rp2040Device.transferOut(1, block);
-    if (onProgress) onProgress(i + 1, numBlocks);
+export async function flashRP2040viaFilesystem(uf2ArrayBuffer, onProgress) {
+  // Ask user to select the RPI-RP2 drive
+  let dirHandle;
+  try {
+    dirHandle = await window.showDirectoryPicker({ mode: 'readwrite' });
+  } catch (e) {
+    if (e.name === 'AbortError') throw new Error('No drive selected — cancelled.');
+    throw e;
   }
 
-  // Device will reboot automatically after last block
-  try { await rp2040Device.close(); } catch (_) {}
-  rp2040Device = null;
-}
+  // Sanity check: warn if it doesn't look like RPI-RP2
+  const name = dirHandle.name.toUpperCase();
+  if (!name.includes('RPI') && !name.includes('RP2')) {
+    const ok = confirm(
+      `Selected drive "${dirHandle.name}" doesn't look like RPI-RP2.\n` +
+      `Continue anyway?`
+    );
+    if (!ok) throw new Error('Aborted — wrong drive selected.');
+  }
 
-export function isWebUSBSupported() {
-  return navigator.usb !== undefined;
+  if (onProgress) onProgress(0, 1);
+
+  const fileHandle = await dirHandle.getFileHandle('firmware.uf2', { create: true });
+  const writable   = await fileHandle.createWritable();
+  await writable.write(uf2ArrayBuffer);
+  await writable.close();
+
+  if (onProgress) onProgress(1, 1);
+  // Board auto-reboots after the .uf2 lands on the drive
 }
