@@ -1,182 +1,544 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-  <meta charset="UTF-8" />
+  <meta charset="UTF-8"/>
   <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
-  <title>Mesonet IoTwx Flasher</title>
+  <title>IoTwx · Flash Firmware</title>
   <script type="module" src="https://unpkg.com/esp-web-tools@10/dist/web/install-button.js?module"></script>
   <style>
-    * { box-sizing: border-box; margin: 0; padding: 0; }
-    body { font-family: system-ui, sans-serif; background: #0f172a; color: #e2e8f0; min-height: 100vh; display: flex; flex-direction: column; align-items: center; padding: 2rem 1rem; }
-    h1 { font-size: 1.6rem; color: #38bdf8; margin-bottom: 0.3rem; }
-    .subtitle { color: #94a3b8; margin-bottom: 2rem; font-size: 0.9rem; }
-    .tabs { display: flex; gap: 0.5rem; margin-bottom: 1.5rem; }
-    .tab { padding: 0.5rem 1.4rem; border-radius: 6px; cursor: pointer; font-weight: 600; border: 2px solid transparent; background: #1e293b; color: #94a3b8; transition: all 0.2s; }
-    .tab.active { border-color: #38bdf8; color: #38bdf8; background: #0f2236; }
-    .card { background: #1e293b; border-radius: 12px; padding: 1.8rem; width: 100%; max-width: 520px; }
-    .card h2 { font-size: 1.1rem; color: #f1f5f9; margin-bottom: 0.4rem; }
-    .card p { color: #94a3b8; font-size: 0.85rem; margin-bottom: 1.2rem; line-height: 1.5; }
-    .panel { display: none; } .panel.active { display: block; }
-    .section-label { font-size: 0.75rem; text-transform: uppercase; letter-spacing: 0.08em; color: #64748b; margin: 1.2rem 0 0.5rem; }
-    .divider { border: none; border-top: 1px solid #334155; margin: 1.4rem 0; }
-    /* ESP Web Tools button styling */
-    esp-web-install-button { --esp-tools-button-color: #0ea5e9; --esp-tools-button-text-color: white; }
-    /* RP2040 UI */
-    .btn { display: inline-flex; align-items: center; gap: 0.4rem; padding: 0.55rem 1.2rem; border-radius: 7px; font-weight: 600; font-size: 0.9rem; cursor: pointer; border: none; transition: opacity 0.2s; }
+    @import url('https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;600&family=Inter:wght@400;500;600&display=swap');
+
+    :root {
+      --ink:     #0d1117;
+      --ink2:    #4a5568;
+      --rule:    #e2e8f0;
+      --sky:     #0ea5e9;
+      --sky-dim: #0284c7;
+      --green:   #22c55e;
+      --amber:   #f59e0b;
+      --red:     #ef4444;
+      --surface: #ffffff;
+      --bg:      #f0f4f8;
+      --mono:    'IBM Plex Mono', monospace;
+      --sans:    'Inter', system-ui, sans-serif;
+      --r:       8px;
+    }
+
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    body {
+      font-family: var(--sans);
+      background: var(--bg);
+      color: var(--ink);
+      min-height: 100vh;
+      padding: 2rem 1rem 4rem;
+    }
+
+    /* ── Nav ── */
+    .nav {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      max-width: 680px;
+      margin: 0 auto 2.5rem;
+    }
+    .nav-brand {
+      font-family: var(--mono);
+      font-size: 0.85rem;
+      font-weight: 600;
+      color: var(--sky);
+      letter-spacing: 0.04em;
+      text-decoration: none;
+    }
+    .nav-steps {
+      display: flex;
+      align-items: center;
+      gap: 0.4rem;
+      font-size: 0.78rem;
+      font-family: var(--mono);
+    }
+    .step { color: var(--ink2); text-decoration: none; }
+    .step:hover { color: var(--sky); }
+    .step.active { color: var(--sky); font-weight: 600; }
+    .step-sep { color: var(--rule); }
+
+    /* ── Page header ── */
+    .page-header {
+      max-width: 680px;
+      margin: 0 auto 2rem;
+    }
+    .eyebrow {
+      font-family: var(--mono);
+      font-size: 0.72rem;
+      letter-spacing: 0.1em;
+      text-transform: uppercase;
+      color: var(--sky);
+      margin-bottom: 0.5rem;
+    }
+    .page-header h1 {
+      font-size: 1.7rem;
+      font-weight: 600;
+      line-height: 1.2;
+      margin-bottom: 0.5rem;
+    }
+    .page-header p {
+      color: var(--ink2);
+      font-size: 0.92rem;
+      line-height: 1.6;
+    }
+
+    /* ── Device tabs ── */
+    .tabs {
+      max-width: 680px;
+      margin: 0 auto 1.5rem;
+      display: flex;
+      gap: 0.5rem;
+      border-bottom: 1px solid var(--rule);
+      padding-bottom: 0;
+    }
+    .tab {
+      padding: 0.6rem 1.2rem;
+      font-size: 0.88rem;
+      font-weight: 600;
+      cursor: pointer;
+      border: none;
+      background: none;
+      color: var(--ink2);
+      border-bottom: 2px solid transparent;
+      margin-bottom: -1px;
+      font-family: var(--sans);
+      transition: color 0.15s, border-color 0.15s;
+    }
+    .tab:hover { color: var(--sky); }
+    .tab.active { color: var(--sky); border-bottom-color: var(--sky); }
+
+    /* ── Panels ── */
+    .panel { display: none; max-width: 680px; margin: 0 auto; }
+    .panel.active { display: block; }
+
+    /* ── Info box ── */
+    .info-box {
+      background: #fffbeb;
+      border: 1px solid #fde68a;
+      border-radius: var(--r);
+      padding: 0.85rem 1.1rem;
+      font-size: 0.83rem;
+      color: #92400e;
+      line-height: 1.5;
+      margin-bottom: 1.2rem;
+    }
+    .info-box strong { color: #78350f; }
+    .info-box.green { background: #f0fdf4; border-color: #bbf7d0; color: #14532d; }
+    .info-box.green strong { color: #14532d; }
+    .info-box.blue { background: #eff6ff; border-color: #bfdbfe; color: #1e40af; }
+
+    /* ── Step list ── */
+    .steps-list {
+      display: flex;
+      flex-direction: column;
+      gap: 1rem;
+      margin-bottom: 1.5rem;
+    }
+    .step-item {
+      background: var(--surface);
+      border: 1px solid var(--rule);
+      border-radius: var(--r);
+      padding: 1.2rem 1.4rem;
+      display: flex;
+      gap: 1rem;
+      align-items: flex-start;
+    }
+    .step-item.done { border-color: #bbf7d0; background: #f0fdf4; }
+    .step-item.active-step { border-color: var(--sky); box-shadow: 0 0 0 3px rgba(14,165,233,0.1); }
+    .step-num {
+      width: 28px; height: 28px;
+      border-radius: 50%;
+      background: var(--bg);
+      border: 2px solid var(--rule);
+      display: grid; place-items: center;
+      font-family: var(--mono);
+      font-size: 0.78rem;
+      font-weight: 600;
+      flex-shrink: 0;
+      color: var(--ink2);
+    }
+    .step-item.done .step-num { background: var(--green); border-color: var(--green); color: #fff; }
+    .step-item.active-step .step-num { background: var(--sky); border-color: var(--sky); color: #fff; }
+    .step-content { flex: 1; }
+    .step-content h3 { font-size: 0.92rem; font-weight: 600; margin-bottom: 0.25rem; }
+    .step-content p { font-size: 0.82rem; color: var(--ink2); line-height: 1.5; }
+
+    /* ── Upload zone ── */
+    .upload-zone {
+      border: 2px dashed var(--rule);
+      border-radius: var(--r);
+      padding: 1.2rem;
+      text-align: center;
+      cursor: pointer;
+      transition: border-color 0.15s, background 0.15s;
+      margin-top: 0.75rem;
+    }
+    .upload-zone:hover, .upload-zone.drag-over {
+      border-color: var(--sky);
+      background: #eff6ff;
+    }
+    .upload-zone p { font-size: 0.82rem; color: var(--ink2); margin-top: 0.3rem; }
+    .upload-zone .filename { font-family: var(--mono); color: var(--sky); font-size: 0.82rem; margin-top: 0.4rem; }
+    .upload-zone input[type="file"] { display: none; }
+
+    /* ── Buttons ── */
+    .btn {
+      display: inline-flex;
+      align-items: center;
+      gap: 0.4rem;
+      padding: 0.65rem 1.3rem;
+      border-radius: var(--r);
+      font-family: var(--sans);
+      font-size: 0.88rem;
+      font-weight: 600;
+      cursor: pointer;
+      border: none;
+      transition: opacity 0.15s, transform 0.15s, background 0.15s;
+      text-decoration: none;
+    }
+    .btn:active { transform: scale(0.97); }
+    .btn-sky { background: var(--sky); color: #fff; }
+    .btn-sky:hover { background: var(--sky-dim); }
+    .btn-green { background: var(--green); color: #fff; }
+    .btn-green:hover { background: #16a34a; }
+    .btn-ghost { background: var(--surface); color: var(--ink); border: 1px solid var(--rule); }
+    .btn-ghost:hover { border-color: var(--sky); color: var(--sky); }
     .btn:disabled { opacity: 0.4; cursor: not-allowed; }
-    .btn-blue  { background: #0ea5e9; color: #fff; }
-    .btn-green { background: #22c55e; color: #fff; }
-    .file-row { display: flex; align-items: center; gap: 0.7rem; flex-wrap: wrap; margin-bottom: 0.8rem; }
-    .file-label { background: #334155; color: #cbd5e1; padding: 0.45rem 0.9rem; border-radius: 6px; font-size: 0.85rem; cursor: pointer; border: 1px dashed #475569; }
-    .file-label:hover { background: #3f5268; }
-    .file-name { font-size: 0.8rem; color: #94a3b8; font-style: italic; }
+
+    .action-row {
+      display: flex;
+      gap: 0.75rem;
+      align-items: center;
+      margin-top: 0.75rem;
+      flex-wrap: wrap;
+    }
+
+    /* ── Progress ── */
     .progress-wrap { margin-top: 1rem; display: none; }
     .progress-wrap.visible { display: block; }
-    .progress-bar { height: 8px; background: #334155; border-radius: 4px; overflow: hidden; }
-    .progress-fill { height: 100%; background: #22c55e; width: 0%; transition: width 0.1s; }
-    .progress-label { font-size: 0.78rem; color: #94a3b8; margin-top: 0.3rem; }
-    .status { margin-top: 0.9rem; font-size: 0.85rem; padding: 0.5rem 0.8rem; border-radius: 6px; display: none; }
+    .progress-bar { height: 6px; background: var(--rule); border-radius: 3px; overflow: hidden; }
+    .progress-fill { height: 100%; background: var(--green); width: 0%; transition: width 0.1s; border-radius: 3px; }
+    .progress-label { font-size: 0.75rem; color: var(--ink2); margin-top: 0.35rem; font-family: var(--mono); }
+
+    /* ── Status ── */
+    .status {
+      margin-top: 0.75rem;
+      font-size: 0.83rem;
+      padding: 0.55rem 0.85rem;
+      border-radius: 6px;
+      display: none;
+      font-family: var(--mono);
+    }
     .status.visible { display: block; }
-    .status.ok   { background: #14532d; color: #86efac; }
-    .status.err  { background: #450a0a; color: #fca5a5; }
-    .status.info { background: #0c2340; color: #7dd3fc; }
-    .warning-box { background: #1c1500; border: 1px solid #854d0e; border-radius: 8px; padding: 0.8rem 1rem; font-size: 0.82rem; color: #fde68a; margin-bottom: 1rem; line-height: 1.5; }
-    .warning-box strong { color: #fbbf24; }
+    .status.ok   { background: #f0fdf4; color: #166534; border: 1px solid #bbf7d0; }
+    .status.err  { background: #fef2f2; color: #991b1b; border: 1px solid #fecaca; }
+    .status.info { background: #eff6ff; color: #1e40af; border: 1px solid #bfdbfe; }
+
+    /* ESP web tools override */
+    esp-web-install-button::part(button) { display: none; }
+
+    @media (max-width: 480px) {
+      .action-row { flex-direction: column; align-items: stretch; }
+      .btn { justify-content: center; }
+    }
   </style>
 </head>
 <body>
 
-<h1>⛅ Mesonet IoTwx Flasher</h1>
-<p class="subtitle">SIParCS 2025 · NCAR · Flash firmware directly from your browser</p>
+<nav class="nav">
+  <a class="nav-brand" href="index.html">⛅ IoTwx Flasher</a>
+  <div class="nav-steps">
+    <a class="step" href="config.html">01 Configure</a>
+    <span class="step-sep">›</span>
+    <span class="step active">02 Flash</span>
+  </div>
+</nav>
 
+<div class="page-header">
+  <div class="eyebrow">Step 2 of 2</div>
+  <h1>Flash your device</h1>
+  <p>Connect your board via USB and flash the IoTwx firmware. Chrome or Edge required — Web Serial and WebUSB are not supported in Firefox.</p>
+</div>
+
+<!-- Tabs -->
 <div class="tabs">
-  <div class="tab active" onclick="switchTab('esp')">ESP Atom Lite</div>
-  <div class="tab"        onclick="switchTab('rp2040')">RP2040</div>
+  <button class="tab active" onclick="switchTab('rp2040')">RP2040 Feather</button>
+  <button class="tab"        onclick="switchTab('esp')">ESP32 Atom Lite</button>
 </div>
 
-<!-- ═══════════════ ESP PANEL ═══════════════ -->
-<div class="card panel active" id="panel-esp">
-  <h2>ESP32 Atom Lite</h2>
-  <p>Uses ESP Web Tools over Web Serial. Works in Chrome and Edge.</p>
+<!-- ══════════ RP2040 PANEL ══════════ -->
+<div class="panel active" id="panel-rp2040">
 
-  <div class="section-label">Option 1 — Flash pre-built firmware</div>
-  <esp-web-install-button manifest="manifest_esp.json">
-    <button slot="activate" class="btn btn-blue">⚡ Connect &amp; Flash ESP</button>
-  </esp-web-install-button>
+  <div id="config-hint" class="info-box green" style="display:none">
+    <strong>✓ Config ready</strong> — you just built a config.json. Upload it in Step 2 below after flashing the firmware.
+  </div>
 
-  <hr class="divider"/>
+  <div class="steps-list">
 
-  <div class="section-label">Option 2 — Upload your own .bin</div>
-  <p>Select a <code>.bin</code> file from your machine, then flash it.</p>
+    <!-- Step 1: Enter bootloader -->
+    <div class="step-item active-step" id="s1">
+      <div class="step-num">1</div>
+      <div class="step-content">
+        <h3>Enter BOOTSEL mode</h3>
+        <p>Hold the <strong>BOOTSEL</strong> button on your Feather, plug in the USB cable, then release. The board mounts as <em>RPI-RP2</em>. Then click Connect.</p>
+        <div class="action-row">
+          <button class="btn btn-sky" id="btn-connect" onclick="connectRP2040()">🔌 Connect board</button>
+        </div>
+        <div class="status" id="s1-status"></div>
+      </div>
+    </div>
 
-  <!-- Custom file flash via esptool.js is complex; guide user to use the official tool -->
-  <div class="warning-box">
-    <strong>Note:</strong> For custom .bin uploads to ESP32, use
-    <a href="https://espressif.github.io/esptool-js/" target="_blank" style="color:#fbbf24">espressif.github.io/esptool-js</a>
-    — it provides a full UI for selecting offsets and custom files.
-    The pre-built button above handles the Mesonet firmware automatically.
+    <!-- Step 2: Flash firmware -->
+    <div class="step-item" id="s2">
+      <div class="step-num">2</div>
+      <div class="step-content">
+        <h3>Flash firmware</h3>
+        <p>Writes the IoTwx RP2040 firmware to the board.</p>
+        <div class="action-row">
+          <button class="btn btn-sky" id="btn-flash-fw" disabled onclick="flashFirmware()">⚡ Flash firmware</button>
+          <label style="font-size:0.78rem; color:var(--ink2)">or upload your own:</label>
+          <label class="btn btn-ghost" style="cursor:pointer; padding:0.5rem 0.9rem; font-size:0.82rem;">
+            📂 Choose .uf2
+            <input type="file" id="uf2-input" accept=".uf2" onchange="onUF2Selected(this)" style="display:none"/>
+          </label>
+          <span id="uf2-name" style="font-size:0.78rem; color:var(--ink2); font-family:var(--mono)"></span>
+        </div>
+        <div class="progress-wrap" id="fw-progress">
+          <div class="progress-bar"><div class="progress-fill" id="fw-fill"></div></div>
+          <div class="progress-label" id="fw-label">0 / 0 blocks</div>
+        </div>
+        <div class="status" id="s2-status"></div>
+      </div>
+    </div>
+
+    <!-- Step 3: Upload config -->
+    <div class="step-item" id="s3">
+      <div class="step-num">3</div>
+      <div class="step-content">
+        <h3>Upload config.json</h3>
+        <p>The board reboots into BOOTSEL after flashing — hold BOOTSEL again and re-connect, then upload your config. This writes the file to the LittleFS partition.</p>
+
+        <div class="upload-zone" id="config-drop" onclick="document.getElementById('config-input').click()"
+             ondragover="onDragOver(event)" ondrop="onDrop(event)" ondragleave="onDragLeave(event)">
+          <div>📄</div>
+          <input type="file" id="config-input" accept=".json" onchange="onConfigSelected(this)"/>
+          <p>Drag your <strong>config.json</strong> here, or click to browse</p>
+          <div class="filename" id="config-name"></div>
+        </div>
+
+        <div class="action-row">
+          <button class="btn btn-green" id="btn-flash-cfg" disabled onclick="flashConfig()">⚡ Write config to board</button>
+          <a class="btn btn-ghost" href="config.html" style="font-size:0.82rem;">Build config →</a>
+        </div>
+        <div class="progress-wrap" id="cfg-progress">
+          <div class="progress-bar"><div class="progress-fill" id="cfg-fill"></div></div>
+          <div class="progress-label" id="cfg-label">0 / 0 blocks</div>
+        </div>
+        <div class="status" id="s3-status"></div>
+      </div>
+    </div>
+
   </div>
 </div>
 
-<!-- ═══════════════ RP2040 PANEL ═══════════════ -->
-<div class="card panel" id="panel-rp2040">
-  <h2>RP2040 (Pico / Custom Board)</h2>
-  <p>Uses WebUSB to write UF2 blocks directly to the RP2040 BOOTSEL bootloader. Chrome or Edge required.</p>
-
-  <div class="warning-box">
-    <strong>Before connecting:</strong> Hold the <strong>BOOTSEL</strong> button on your board, then plug in the USB cable. The board should appear as <em>RPI-RP2</em> drive. Then click Connect below.
+<!-- ══════════ ESP PANEL ══════════ -->
+<div class="panel" id="panel-esp">
+  <div class="info-box blue">
+    <strong>ESP32 Atom Lite</strong> — uses Web Serial (ESP flashing protocol). No BOOTSEL needed; just plug in and click Flash.
   </div>
 
-  <div class="section-label">Option 1 — Flash pre-built firmware</div>
-  <div style="display:flex; gap:0.6rem; flex-wrap:wrap; margin-bottom:0.5rem;">
-    <button class="btn btn-blue" id="btn-connect-builtin" onclick="connectAndFlashBuiltin()">🔌 Connect &amp; Flash RP2040</button>
-  </div>
+  <div class="steps-list">
+    <div class="step-item active-step">
+      <div class="step-num">1</div>
+      <div class="step-content">
+        <h3>Flash pre-built firmware</h3>
+        <p>Plug in your Atom Lite and click Flash. Chrome/Edge will ask you to select the serial port.</p>
+        <div class="action-row" style="margin-top:0.75rem">
+          <esp-web-install-button manifest="manifest_esp.json">
+            <button slot="activate" class="btn btn-sky">⚡ Connect &amp; Flash ESP</button>
+          </esp-web-install-button>
+        </div>
+      </div>
+    </div>
 
-  <hr class="divider"/>
-
-  <div class="section-label">Option 2 — Upload your own .uf2</div>
-  <div class="file-row">
-    <label class="file-label" for="uf2-input">📂 Choose .uf2 file</label>
-    <input type="file" id="uf2-input" accept=".uf2" style="display:none" onchange="onUF2Selected(this)"/>
-    <span class="file-name" id="uf2-filename">No file chosen</span>
+    <div class="step-item">
+      <div class="step-num">2</div>
+      <div class="step-content">
+        <h3>Custom .bin file</h3>
+        <p>Need to flash a different binary? Use Espressif's official tool which supports custom offsets and multi-part images.</p>
+        <div class="action-row" style="margin-top:0.75rem">
+          <a class="btn btn-ghost" href="https://espressif.github.io/esptool-js/" target="_blank">Open esptool.js ↗</a>
+        </div>
+      </div>
+    </div>
   </div>
-  <button class="btn btn-green" id="btn-flash-custom" onclick="connectAndFlashCustom()" disabled>⚡ Connect &amp; Flash</button>
-
-  <div class="progress-wrap" id="rp2-progress">
-    <div class="progress-bar"><div class="progress-fill" id="rp2-fill"></div></div>
-    <div class="progress-label" id="rp2-label">0 / 0 blocks</div>
-  </div>
-  <div class="status" id="rp2-status"></div>
 </div>
 
 <script type="module">
   import { connectRP2040, flashRP2040, isWebUSBSupported } from './js/rp2040-flasher.js';
 
-  // ── Tab switching ──────────────────────────────────────────
+  // ── Show config-ready hint if coming from config page ────
+  if (sessionStorage.getItem('configReady')) {
+    document.getElementById('config-hint').style.display = 'block';
+  }
+
+  // ── Tab switching ─────────────────────────────────────────
   window.switchTab = (tab) => {
-    document.querySelectorAll('.tab').forEach((t,i) => t.classList.toggle('active', (i===0&&tab==='esp')||(i===1&&tab==='rp2040')));
-    document.getElementById('panel-esp').classList.toggle('active', tab==='esp');
-    document.getElementById('panel-rp2040').classList.toggle('active', tab==='rp2040');
+    document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
+    document.querySelectorAll('.panel').forEach(p => p.classList.remove('active'));
+    const idx = tab === 'rp2040' ? 0 : 1;
+    document.querySelectorAll('.tab')[idx].classList.add('active');
+    document.getElementById(`panel-${tab}`).classList.add('active');
+    if (tab === 'rp2040' && location.hash !== '#rp2040') history.replaceState(null,'','#rp2040');
   };
 
-  // ── RP2040 helpers ────────────────────────────────────────
-  function setStatus(msg, type='info') {
-    const el = document.getElementById('rp2-status');
-    el.textContent = msg; el.className = `status visible ${type}`;
+  if (location.hash === '#esp') switchTab('esp');
+
+  // ── Status helpers ────────────────────────────────────────
+  function status(id, msg, type = 'info') {
+    const el = document.getElementById(id);
+    el.textContent = msg;
+    el.className = `status visible ${type}`;
   }
-  function setProgress(done, total) {
-    const pct = Math.round((done/total)*100);
-    document.getElementById('rp2-fill').style.width  = pct + '%';
-    document.getElementById('rp2-label').textContent = `${done} / ${total} blocks (${pct}%)`;
-    document.getElementById('rp2-progress').classList.add('visible');
+  function progress(fillId, labelId, wrapId, done, total) {
+    const pct = total > 0 ? Math.round((done / total) * 100) : 0;
+    document.getElementById(fillId).style.width = pct + '%';
+    document.getElementById(labelId).textContent = `${done} / ${total} blocks (${pct}%)`;
+    document.getElementById(wrapId).classList.add('visible');
+  }
+  function markDone(stepId) {
+    const el = document.getElementById(stepId);
+    el.classList.remove('active-step');
+    el.classList.add('done');
+    el.querySelector('.step-num').textContent = '✓';
   }
 
-  // ── File selection ─────────────────────────────────────────
+  // ── RP2040 state ──────────────────────────────────────────
+  let rp2040Connected = false;
   let customUF2 = null;
+  let customConfig = null;
+
+  window.connectRP2040 = async () => {
+    if (!isWebUSBSupported()) return status('s1-status', '✗ WebUSB not supported — use Chrome or Edge.', 'err');
+    try {
+      status('s1-status', 'Waiting for board selection…', 'info');
+      await connectRP2040();
+      rp2040Connected = true;
+      status('s1-status', '✓ Board connected.', 'ok');
+      markDone('s1');
+      document.getElementById('s2').classList.add('active-step');
+      document.getElementById('btn-flash-fw').disabled = false;
+    } catch (e) {
+      status('s1-status', '✗ ' + e.message, 'err');
+    }
+  };
+
   window.onUF2Selected = (input) => {
-    const file = input.files[0];
-    if (!file) return;
-    customUF2 = file;
-    document.getElementById('uf2-filename').textContent = file.name;
-    document.getElementById('btn-flash-custom').disabled = false;
-  };
-
-  // ── Flash pre-built firmware ───────────────────────────────
-  window.connectAndFlashBuiltin = async () => {
-    if (!isWebUSBSupported()) return setStatus('WebUSB not supported. Use Chrome or Edge.', 'err');
-    try {
-      setStatus('Connecting to RP2040…', 'info');
-      await connectRP2040();
-      setStatus('Connected! Fetching firmware…', 'info');
-      const resp = await fetch('firmware/mesonet_rp2040.uf2');
-      if (!resp.ok) throw new Error('Could not fetch firmware/mesonet_rp2040.uf2');
-      const buf = await resp.arrayBuffer();
-      setStatus('Flashing…', 'info');
-      await flashRP2040(buf, setProgress);
-      setStatus('✅ Done! Device is rebooting.', 'ok');
-    } catch (e) {
-      setStatus('❌ ' + e.message, 'err');
-      console.error(e);
+    customUF2 = input.files[0];
+    if (customUF2) {
+      document.getElementById('uf2-name').textContent = customUF2.name;
+      document.getElementById('btn-flash-fw').disabled = !rp2040Connected;
     }
   };
 
-  // ── Flash custom uploaded .uf2 ─────────────────────────────
-  window.connectAndFlashCustom = async () => {
-    if (!customUF2)  return setStatus('Please select a .uf2 file first.', 'err');
-    if (!isWebUSBSupported()) return setStatus('WebUSB not supported. Use Chrome or Edge.', 'err');
+  window.flashFirmware = async () => {
     try {
-      setStatus('Connecting to RP2040…', 'info');
-      await connectRP2040();
-      setStatus('Connected! Reading file…', 'info');
-      const buf = await customUF2.arrayBuffer();
-      setStatus('Flashing…', 'info');
-      await flashRP2040(buf, setProgress);
-      setStatus('✅ Done! Device is rebooting.', 'ok');
+      let buf;
+      if (customUF2) {
+        status('s2-status', 'Reading custom .uf2…', 'info');
+        buf = await customUF2.arrayBuffer();
+      } else {
+        status('s2-status', 'Fetching firmware…', 'info');
+        const r = await fetch('firmware/mesonet_rp2040.uf2');
+        if (!r.ok) throw new Error('Could not fetch firmware/mesonet_rp2040.uf2 — did you add it to the repo?');
+        buf = await r.arrayBuffer();
+      }
+      status('s2-status', 'Flashing firmware…', 'info');
+      await flashRP2040(buf, (done, total) => progress('fw-fill', 'fw-label', 'fw-progress', done, total));
+      status('s2-status', '✓ Firmware flashed. Board is rebooting.', 'ok');
+      markDone('s2');
+      document.getElementById('s3').classList.add('active-step');
+      rp2040Connected = false;
     } catch (e) {
-      setStatus('❌ ' + e.message, 'err');
-      console.error(e);
+      status('s2-status', '✗ ' + e.message, 'err');
     }
   };
+
+  // ── Config upload ─────────────────────────────────────────
+  window.onConfigSelected = (input) => {
+    customConfig = input.files[0];
+    if (customConfig) {
+      document.getElementById('config-name').textContent = customConfig.name;
+      document.getElementById('btn-flash-cfg').disabled = false;
+    }
+  };
+
+  window.onDragOver = (e) => { e.preventDefault(); document.getElementById('config-drop').classList.add('drag-over'); };
+  window.onDragLeave = () => { document.getElementById('config-drop').classList.remove('drag-over'); };
+  window.onDrop = (e) => {
+    e.preventDefault();
+    document.getElementById('config-drop').classList.remove('drag-over');
+    const file = e.dataTransfer.files[0];
+    if (file && file.name.endsWith('.json')) {
+      customConfig = file;
+      document.getElementById('config-name').textContent = file.name;
+      document.getElementById('btn-flash-cfg').disabled = false;
+    }
+  };
+
+  window.flashConfig = async () => {
+    if (!customConfig) return status('s3-status', 'Please select a config.json file.', 'err');
+    if (!isWebUSBSupported()) return status('s3-status', '✗ WebUSB not supported — use Chrome or Edge.', 'err');
+    try {
+      status('s3-status', 'Connecting to board (hold BOOTSEL)…', 'info');
+      await connectRP2040();
+      status('s3-status', 'Packaging config as LittleFS image…', 'info');
+      const text = await customConfig.text();
+      const uf2buf = await buildLittleFSUF2(text);
+      status('s3-status', 'Writing config to board…', 'info');
+      await flashRP2040(uf2buf, (done, total) => progress('cfg-fill', 'cfg-label', 'cfg-progress', done, total));
+      status('s3-status', '✓ Config written. Board is ready.', 'ok');
+      markDone('s3');
+      sessionStorage.removeItem('configReady');
+    } catch (e) {
+      status('s3-status', '✗ ' + e.message, 'err');
+    }
+  };
+
+  // ── Minimal LittleFS UF2 builder ─────────────────────────
+  // Writes config.json into a LittleFS image at the correct
+  // flash offset for the Adafruit Feather RP2040 (7MB sketch / 1MB FS)
+  // LittleFS starts at 0x10000000 + 7*1024*1024 = 0x107 0000
+  async function buildLittleFSUF2(jsonText) {
+    const FLASH_BASE   = 0x10000000;
+    const FS_OFFSET    = 7 * 1024 * 1024;       // 7MB sketch area
+    const FS_SIZE      = 1 * 1024 * 1024;       // 1MB FS
+    const BLOCK_SIZE   = 4096;                   // LittleFS block size
+    const UF2_DATA     = 256;
+    const UF2_BLOCK    = 512;
+    const FAMILY_ID    = 0xe48bff56;            // RP2040
+
+    const enc = new TextEncoder();
+    const fileBytes = enc.encode(jsonText);
+
+    // Very minimal LittleFS: superblock + one file
+    // For a single small file we create a flat LittleFS image
+    // Real LittleFS is complex; here we use the mklittlefs approach:
+    // fill entire FS with 0xFF then write a pre-built image.
+    // Since we cannot run mklittlefs in-browser, we signal the user
+    // to use the Arduino IDE LittleFS uploader for config, and just
+    // provide the JSON download. This placeholder makes the UI flow clear.
+    throw new Error(
+      'In-browser LittleFS image building is not yet implemented. ' +
+      'Download config.json and use Tools → Pico LittleFS Data Upload in Arduino IDE, ' +
+      'or wait for the config uploader to be merged into this project.'
+    );
+  }
 </script>
 
 </body>
