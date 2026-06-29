@@ -455,6 +455,8 @@
   };
 
   // ── File System Access API: write file to a chosen drive ──
+  // On Windows, the RPI-RP2 drive root reports its name as "\" or ""
+  // so we skip name validation and just write — the user chose it.
   async function writeFileToDrive(buffer, filename) {
     if (!('showDirectoryPicker' in window)) {
       throw new Error('File System Access API not supported — use Chrome or Edge 86+.');
@@ -466,36 +468,29 @@
       if (e.name === 'AbortError') throw new Error('Cancelled — no drive selected.');
       throw e;
     }
-    const name = dir.name.toUpperCase();
-    if (!name.includes('RPI') && !name.includes('RP2')) {
-      if (!confirm(`"${dir.name}" doesn't look like RPI-RP2. Continue anyway?`)) {
-        throw new Error('Aborted — wrong drive.');
-      }
-    }
-    const fh  = await dir.getFileHandle(filename, { create: true });
-    const wr  = await fh.createWritable();
+    window._rpiDir = dir; // cache for subsequent calls
+    const fh = await dir.getFileHandle(filename, { create: true });
+    const wr = await fh.createWritable();
     await wr.write(buffer);
     await wr.close();
   }
 
   // ── Step 1: Detect BOOTSEL drive ─────────────────────────
+  // We just ask the user to pick the drive; any drive is accepted
+  // since Windows reports the RP2040 root as "\" anyway.
   window.checkBootsel = async () => {
     if (!('showDirectoryPicker' in window)) {
       setStatus('s1-status', '✗ File System Access API not supported — use Chrome or Edge.', 'err');
       return;
     }
     try {
-      setStatus('s1-status', 'Select the RPI-RP2 drive in the picker…', 'info');
+      setStatus('s1-status', 'Select the RPI-RP2 drive in the folder picker…', 'info');
       const dir = await window.showDirectoryPicker({ mode: 'readwrite' });
-      const name = dir.name.toUpperCase();
-      if (name.includes('RPI') || name.includes('RP2')) {
-        setStatus('s1-status', `✓ Found "${dir.name}" — board is in BOOTSEL mode.`, 'ok');
-        markDone('s1');
-        activateStep('s2');
-        window._rpiDir = dir; // cache the handle
-      } else {
-        setStatus('s1-status', `⚠ Selected "${dir.name}" — this may not be your RP2040. Re-plug holding BOOTSEL and try again.`, 'err');
-      }
+      window._rpiDir = dir;
+      // On Windows the drive root name is "\" or empty — accept anything
+      setStatus('s1-status', `✓ Drive selected ("${dir.name || 'RPI-RP2'}") — board is ready.`, 'ok');
+      markDone('s1');
+      activateStep('s2');
     } catch (e) {
       if (e.name === 'AbortError') {
         setStatus('s1-status', 'No drive selected. Hold BOOTSEL, re-plug, then try again.', 'err');
@@ -505,22 +500,40 @@
     }
   };
 
-  // ── Write UF2 to cached drive (or re-pick) ────────────────
-  async function writeUF2(buffer, progressWrap) {
+  // ── Write buffer to the cached drive dir ─────────────────
+  async function writeToCachedDir(buffer, filename, statusId, progressIds) {
     let dir = window._rpiDir;
+    if (!dir) {
+      // No cached handle — ask user to pick again
+      setStatus(statusId, 'Select the RPI-RP2 drive in the folder picker…', 'info');
+      dir = await (async () => {
+        const d = await window.showDirectoryPicker({ mode: 'readwrite' });
+        window._rpiDir = d;
+        return d;
+      })();
+    }
     try {
-      // Try using cached handle — it may have been revoked after reboot
-      const fh = await dir.getFileHandle('firmware.uf2', { create: true });
+      setProgress(progressIds[0], progressIds[1], progressIds[2], 0, 1);
+      const fh = await dir.getFileHandle(filename, { create: true });
       const wr = await fh.createWritable();
-      setProgress('fw-fill','fw-label','fw-progress', 0, 1);
       await wr.write(buffer);
       await wr.close();
-      setProgress('fw-fill','fw-label','fw-progress', 1, 1);
-    } catch (_) {
-      // Handle revoked — ask user to re-select
-      setStatus('s2-status', 'Drive handle expired — select the RPI-RP2 drive again.', 'info');
-      await writeFileToDrive(buffer, 'firmware.uf2');
-      setProgress('fw-fill','fw-label','fw-progress', 1, 1);
+      setProgress(progressIds[0], progressIds[1], progressIds[2], 1, 1);
+    } catch (e) {
+      if (e.name === 'NotAllowedError' || e.name === 'SecurityError') {
+        // Handle revoked after board reboot — ask user to re-select
+        setStatus(statusId, 'Drive access expired (board rebooted). Select RPI-RP2 again…', 'info');
+        window._rpiDir = null;
+        const d = await window.showDirectoryPicker({ mode: 'readwrite' });
+        window._rpiDir = d;
+        const fh = await d.getFileHandle(filename, { create: true });
+        const wr = await fh.createWritable();
+        await wr.write(buffer);
+        await wr.close();
+        setProgress(progressIds[0], progressIds[1], progressIds[2], 1, 1);
+      } else {
+        throw e;
+      }
     }
   }
 
@@ -529,16 +542,16 @@
     try {
       setStatus('s2-status', 'Fetching firmware…', 'info');
       const r = await fetch('firmware/mesonet_rp2040.uf2');
-      if (!r.ok) throw new Error('firmware/mesonet_rp2040.uf2 not found in repo. Add it and push first.');
+      if (!r.ok) throw new Error('firmware/mesonet_rp2040.uf2 not found — add it to the repo and push first.');
       const buf = await r.arrayBuffer();
-      setStatus('s2-status', 'Select the RPI-RP2 drive in the picker…', 'info');
-      await writeFileToDrive(buf, 'firmware.uf2');
-      setProgress('fw-fill','fw-label','fw-progress', 1, 1);
-      setStatus('s2-status', '✓ Firmware written — board is rebooting.', 'ok');
+      setStatus('s2-status', 'Writing to board…', 'info');
+      await writeToCachedDir(buf, 'firmware.uf2', 's2-status', ['fw-fill','fw-label','fw-progress']);
+      setStatus('s2-status', '✓ Firmware written — board is rebooting automatically.', 'ok');
       markDone('s2');
       activateStep('s3');
     } catch (e) {
-      setStatus('s2-status', '✗ ' + e.message, 'err');
+      if (e.name === 'AbortError') setStatus('s2-status', 'Cancelled — no drive selected.', 'err');
+      else setStatus('s2-status', '✗ ' + e.message, 'err');
     }
   };
 
@@ -554,14 +567,14 @@
     try {
       setStatus('s2-status', 'Reading file…', 'info');
       const buf = await customUF2file.arrayBuffer();
-      setStatus('s2-status', 'Select the RPI-RP2 drive in the picker…', 'info');
-      await writeFileToDrive(buf, 'firmware.uf2');
-      setProgress('fw-fill','fw-label','fw-progress', 1, 1);
-      setStatus('s2-status', '✓ Firmware written — board is rebooting.', 'ok');
+      setStatus('s2-status', 'Writing to board…', 'info');
+      await writeToCachedDir(buf, 'firmware.uf2', 's2-status', ['fw-fill','fw-label','fw-progress']);
+      setStatus('s2-status', '✓ Firmware written — board is rebooting automatically.', 'ok');
       markDone('s2');
       activateStep('s3');
     } catch (e) {
-      setStatus('s2-status', '✗ ' + e.message, 'err');
+      if (e.name === 'AbortError') setStatus('s2-status', 'Cancelled — no drive selected.', 'err');
+      else setStatus('s2-status', '✗ ' + e.message, 'err');
     }
   };
 
@@ -580,14 +593,16 @@
     try {
       setStatus('s3-status', 'Reading config.json…', 'info');
       const buf = await configFile.arrayBuffer();
-      setStatus('s3-status', 'Hold BOOTSEL, re-plug, then select the RPI-RP2 drive…', 'info');
-      await writeFileToDrive(buf, 'config.json');
-      setProgress('cfg-fill','cfg-label','cfg-progress', 1, 1);
-      setStatus('s3-status', '✓ config.json written to drive. Use Arduino IDE → Tools → Pico LittleFS Data Upload to move it into the LittleFS partition, or the board will read it from the drive directly if your firmware mounts it that way.', 'ok');
+      setStatus('s3-status', 'Hold BOOTSEL, re-plug, then select the RPI-RP2 drive in the picker…', 'info');
+      // Clear cached handle — board rebooted since firmware flash
+      window._rpiDir = null;
+      await writeToCachedDir(buf, 'config.json', 's3-status', ['cfg-fill','cfg-label','cfg-progress']);
+      setStatus('s3-status', '✓ config.json written to RPI-RP2. Now use Arduino IDE → Tools → Pico LittleFS Data Upload to flash it into the LittleFS partition.', 'ok');
       markDone('s3');
       sessionStorage.removeItem('configReady');
     } catch (e) {
-      setStatus('s3-status', '✗ ' + e.message, 'err');
+      if (e.name === 'AbortError') setStatus('s3-status', 'Cancelled — no drive selected.', 'err');
+      else setStatus('s3-status', '✗ ' + e.message, 'err');
     }
   };
 </script>
