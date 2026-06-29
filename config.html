@@ -3,273 +3,68 @@
 <head>
   <meta charset="UTF-8"/>
   <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
-  <title>IoTwx · Station Config</title>
+  <title>IoTwx · Station Setup</title>
   <style>
     @import url('https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;600&family=Inter:wght@400;500;600&display=swap');
 
     :root {
-      --ink:      #0d1117;
-      --ink2:     #4a5568;
-      --rule:     #e2e8f0;
-      --sky:      #0ea5e9;
-      --sky-dim:  #0284c7;
-      --green:    #22c55e;
-      --amber:    #f59e0b;
-      --surface:  #ffffff;
-      --bg:       #f0f4f8;
-      --mono:     'IBM Plex Mono', monospace;
-      --sans:     'Inter', system-ui, sans-serif;
-      --r:        8px;
+      --ink:  #0d1117; --ink2: #4a5568; --rule: #e2e8f0;
+      --sky:  #0ea5e9; --sky2: #0284c7;
+      --green:#22c55e; --bg:   #f0f4f8; --surface:#ffffff;
+      --mono: 'IBM Plex Mono', monospace;
+      --sans: 'Inter', system-ui, sans-serif;
+      --r: 8px;
     }
-
     *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    body { font-family: var(--sans); background: var(--bg); color: var(--ink); min-height: 100vh; padding: 2rem 1rem 4rem; }
 
-    body {
-      font-family: var(--sans);
-      background: var(--bg);
-      color: var(--ink);
-      min-height: 100vh;
-      padding: 2rem 1rem 4rem;
-    }
+    .nav { display:flex; align-items:center; justify-content:space-between; max-width:700px; margin:0 auto 2.5rem; }
+    .nav-brand { font-family:var(--mono); font-size:0.85rem; font-weight:600; color:var(--sky); text-decoration:none; }
+    .nav-steps { display:flex; align-items:center; gap:0.4rem; font-size:0.78rem; font-family:var(--mono); }
+    .nstep { color:var(--ink2); } .nstep.active { color:var(--sky); font-weight:600; } .nsep { color:var(--rule); }
 
-    /* ── Top nav ── */
-    .nav {
-      display: flex;
-      align-items: center;
-      justify-content: space-between;
-      max-width: 700px;
-      margin: 0 auto 2.5rem;
-    }
-    .nav-brand {
-      font-family: var(--mono);
-      font-size: 0.85rem;
-      font-weight: 600;
-      color: var(--sky);
-      letter-spacing: 0.04em;
-      text-decoration: none;
-    }
-    .nav-steps {
-      display: flex;
-      align-items: center;
-      gap: 0.4rem;
-      font-size: 0.78rem;
-      font-family: var(--mono);
-    }
-    .step { color: var(--ink2); }
-    .step.active { color: var(--sky); font-weight: 600; }
-    .step-sep { color: var(--rule); }
+    .page-header { max-width:700px; margin:0 auto 2rem; }
+    .eyebrow { font-family:var(--mono); font-size:0.72rem; letter-spacing:0.1em; text-transform:uppercase; color:var(--sky); margin-bottom:0.5rem; }
+    .page-header h1 { font-size:1.7rem; font-weight:600; line-height:1.2; margin-bottom:0.5rem; }
+    .page-header p  { color:var(--ink2); font-size:0.92rem; line-height:1.6; }
 
-    /* ── Page header ── */
-    .page-header {
-      max-width: 700px;
-      margin: 0 auto 2rem;
-    }
-    .eyebrow {
-      font-family: var(--mono);
-      font-size: 0.72rem;
-      letter-spacing: 0.1em;
-      text-transform: uppercase;
-      color: var(--sky);
-      margin-bottom: 0.5rem;
-    }
-    .page-header h1 {
-      font-size: 1.7rem;
-      font-weight: 600;
-      line-height: 1.2;
-      margin-bottom: 0.5rem;
-    }
-    .page-header p {
-      color: var(--ink2);
-      font-size: 0.92rem;
-      line-height: 1.6;
-    }
+    .card { max-width:700px; margin:0 auto 1.5rem; background:var(--surface); border:1px solid var(--rule); border-radius:var(--r); overflow:hidden; }
+    .card-head { padding:1rem 1.5rem; border-bottom:1px solid var(--rule); display:flex; align-items:center; gap:0.6rem; }
+    .card-icon { width:28px; height:28px; border-radius:6px; background:var(--sky); display:grid; place-items:center; font-size:0.85rem; flex-shrink:0; }
+    .card-head h2 { font-size:0.92rem; font-weight:600; }
+    .card-head p  { font-size:0.78rem; color:var(--ink2); margin-top:0.1rem; }
+    .card-body { padding:1.5rem; display:grid; grid-template-columns:1fr 1fr; gap:1rem 1.5rem; }
+    .card-body.triple { grid-template-columns:1fr 1fr 1fr; }
 
-    /* ── Card ── */
-    .card {
-      max-width: 700px;
-      margin: 0 auto 1.5rem;
-      background: var(--surface);
-      border: 1px solid var(--rule);
-      border-radius: var(--r);
-      overflow: hidden;
-    }
-    .card-head {
-      padding: 1rem 1.5rem;
-      border-bottom: 1px solid var(--rule);
-      display: flex;
-      align-items: center;
-      gap: 0.6rem;
-    }
-    .card-head-icon {
-      width: 28px; height: 28px;
-      border-radius: 6px;
-      background: var(--sky);
-      display: grid; place-items: center;
-      font-size: 0.8rem;
-      flex-shrink: 0;
-    }
-    .card-head h2 {
-      font-size: 0.92rem;
-      font-weight: 600;
-    }
-    .card-head p {
-      font-size: 0.78rem;
-      color: var(--ink2);
-      margin-top: 0.1rem;
-    }
-    .card-body {
-      padding: 1.5rem;
-      display: grid;
-      grid-template-columns: 1fr 1fr;
-      gap: 1rem 1.5rem;
-    }
-    .card-body.single { grid-template-columns: 1fr; }
-    .card-body.triple { grid-template-columns: 1fr 1fr 1fr; }
+    .field { display:flex; flex-direction:column; gap:0.35rem; }
+    .field.full { grid-column:1/-1; }
+    .field label { font-size:0.78rem; font-weight:600; color:var(--ink2); text-transform:uppercase; letter-spacing:0.05em; }
+    .field input, .field select { font-family:var(--sans); font-size:0.9rem; padding:0.55rem 0.8rem; border:1px solid var(--rule); border-radius:6px; background:var(--surface); color:var(--ink); outline:none; transition:border-color 0.15s, box-shadow 0.15s; width:100%; }
+    .field input:focus, .field select:focus { border-color:var(--sky); box-shadow:0 0 0 3px rgba(14,165,233,0.15); }
+    .field input::placeholder { color:#a0aec0; }
+    .field .hint { font-size:0.72rem; color:var(--ink2); font-family:var(--mono); }
 
-    /* ── Form fields ── */
-    .field { display: flex; flex-direction: column; gap: 0.35rem; }
-    .field.full { grid-column: 1 / -1; }
-    .field label {
-      font-size: 0.78rem;
-      font-weight: 600;
-      color: var(--ink2);
-      text-transform: uppercase;
-      letter-spacing: 0.05em;
-    }
-    .field input, .field select {
-      font-family: var(--sans);
-      font-size: 0.9rem;
-      padding: 0.55rem 0.8rem;
-      border: 1px solid var(--rule);
-      border-radius: 6px;
-      background: var(--surface);
-      color: var(--ink);
-      outline: none;
-      transition: border-color 0.15s, box-shadow 0.15s;
-      width: 100%;
-    }
-    .field input:focus, .field select:focus {
-      border-color: var(--sky);
-      box-shadow: 0 0 0 3px rgba(14,165,233,0.15);
-    }
-    .field input::placeholder { color: #a0aec0; }
-    .field .hint {
-      font-size: 0.72rem;
-      color: var(--ink2);
-      font-family: var(--mono);
-    }
+    .toggle-row { display:flex; align-items:center; gap:0.7rem; padding:0.3rem 0; }
+    .toggle-row label { font-size:0.88rem; font-weight:500; cursor:pointer; }
+    input[type="checkbox"] { width:16px; height:16px; accent-color:var(--sky); cursor:pointer; }
 
-    /* toggle row */
-    .toggle-row {
-      display: flex;
-      align-items: center;
-      gap: 0.7rem;
-      padding: 0.55rem 0;
-    }
-    .toggle-row label { font-size: 0.88rem; font-weight: 500; cursor: pointer; }
-    input[type="checkbox"] {
-      width: 16px; height: 16px;
-      accent-color: var(--sky);
-      cursor: pointer;
-    }
+    .adv-toggle { max-width:700px; margin:0 auto 1.5rem; display:flex; align-items:center; gap:0.5rem; cursor:pointer; font-size:0.82rem; color:var(--ink2); font-family:var(--mono); user-select:none; }
+    .adv-toggle:hover { color:var(--sky); }
+    .adv-body { display:none; } .adv-body.open { display:block; }
 
-    /* advanced section */
-    .advanced-toggle {
-      max-width: 700px;
-      margin: 0 auto 1.5rem;
-      display: flex;
-      align-items: center;
-      gap: 0.5rem;
-      cursor: pointer;
-      font-size: 0.82rem;
-      color: var(--ink2);
-      font-family: var(--mono);
-      user-select: none;
-    }
-    .advanced-toggle:hover { color: var(--sky); }
-    .advanced-body { display: none; }
-    .advanced-body.open { display: block; }
+    .action-bar { max-width:700px; margin:2rem auto 0; display:flex; gap:0.75rem; align-items:center; flex-wrap:wrap; }
+    .btn { display:inline-flex; align-items:center; gap:0.4rem; padding:0.65rem 1.3rem; border-radius:var(--r); font-family:var(--sans); font-size:0.88rem; font-weight:600; cursor:pointer; border:none; transition:opacity 0.15s, transform 0.1s; text-decoration:none; }
+    .btn:active { transform:scale(0.97); }
+    .btn-primary { background:var(--sky); color:#fff; } .btn-primary:hover { background:var(--sky2); }
+    .btn-green   { background:var(--green); color:#fff; } .btn-green:hover { background:#16a34a; }
+    .btn:disabled { opacity:0.4; cursor:not-allowed; }
 
-    /* ── Action bar ── */
-    .action-bar {
-      max-width: 700px;
-      margin: 0 auto;
-      display: flex;
-      gap: 0.75rem;
-      align-items: center;
-    }
-    .btn {
-      display: inline-flex;
-      align-items: center;
-      gap: 0.4rem;
-      padding: 0.65rem 1.3rem;
-      border-radius: var(--r);
-      font-family: var(--sans);
-      font-size: 0.88rem;
-      font-weight: 600;
-      cursor: pointer;
-      border: none;
-      transition: opacity 0.15s, transform 0.15s;
-      text-decoration: none;
-    }
-    .btn:active { transform: scale(0.97); }
-    .btn-primary { background: var(--sky); color: #fff; }
-    .btn-primary:hover { background: var(--sky-dim); }
-    .btn-ghost { background: var(--surface); color: var(--ink); border: 1px solid var(--rule); }
-    .btn-ghost:hover { border-color: var(--sky); color: var(--sky); }
-    .btn-green { background: var(--green); color: #fff; }
-    .btn-green:hover { background: #16a34a; }
-    .btn[disabled] { opacity: 0.4; pointer-events: none; }
+    .next-banner { max-width:700px; margin:1.5rem auto 0; background:#f0fdf4; border:1px solid #bbf7d0; border-radius:var(--r); padding:1rem 1.5rem; display:none; align-items:center; justify-content:space-between; gap:1rem; }
+    .next-banner.visible { display:flex; }
+    .next-banner p { font-size:0.88rem; color:#166534; }
+    .next-banner strong { display:block; font-size:0.95rem; color:#14532d; }
 
-    /* ── Preview ── */
-    .preview-wrap {
-      max-width: 700px;
-      margin: 1.5rem auto 0;
-      display: none;
-    }
-    .preview-wrap.visible { display: block; }
-    .preview-label {
-      font-family: var(--mono);
-      font-size: 0.72rem;
-      color: var(--ink2);
-      text-transform: uppercase;
-      letter-spacing: 0.08em;
-      margin-bottom: 0.4rem;
-    }
-    .preview-box {
-      background: var(--ink);
-      color: #e2e8f0;
-      font-family: var(--mono);
-      font-size: 0.8rem;
-      line-height: 1.6;
-      padding: 1.2rem;
-      border-radius: var(--r);
-      white-space: pre;
-      overflow-x: auto;
-      max-height: 260px;
-    }
-
-    /* ── Next step banner ── */
-    .next-banner {
-      max-width: 700px;
-      margin: 1.5rem auto 0;
-      background: #f0fdf4;
-      border: 1px solid #bbf7d0;
-      border-radius: var(--r);
-      padding: 1rem 1.5rem;
-      display: none;
-      align-items: center;
-      justify-content: space-between;
-      gap: 1rem;
-    }
-    .next-banner.visible { display: flex; }
-    .next-banner p { font-size: 0.88rem; color: #166534; }
-    .next-banner strong { display: block; font-size: 0.95rem; color: #14532d; }
-
-    @media (max-width: 560px) {
-      .card-body { grid-template-columns: 1fr; }
-      .card-body.triple { grid-template-columns: 1fr 1fr; }
-    }
+    @media(max-width:560px) { .card-body { grid-template-columns:1fr; } .card-body.triple { grid-template-columns:1fr 1fr; } .action-bar { flex-direction:column; align-items:stretch; } .btn { justify-content:center; } }
   </style>
 </head>
 <body>
@@ -277,80 +72,47 @@
 <nav class="nav">
   <a class="nav-brand" href="index.html">⛅ IoTwx Flasher</a>
   <div class="nav-steps">
-    <span class="step active">01 Configure</span>
-    <span class="step-sep">›</span>
-    <span class="step">02 Flash</span>
+    <span class="nstep active">01 Configure</span>
+    <span class="nsep">›</span>
+    <span class="nstep">02 Flash</span>
   </div>
 </nav>
 
 <div class="page-header">
-  <div class="eyebrow">RP2040 · Step 1 of 2</div>
-  <h1>Build your station config</h1>
-  <p>Fill in your station details. The config file is generated locally in your browser — nothing is sent to a server. Download it, then head to Step 2 to flash your board.</p>
+  <div class="eyebrow">Step 1 of 2</div>
+  <h1>Set up your station</h1>
+  <p>Fill in your details. When you click <strong>Continue to Flash</strong>, your config is baked directly into a single <code>.uf2</code> file together with the firmware — one drag onto the board and you're done.</p>
 </div>
 
-<!-- Station Info -->
+<!-- Owner -->
 <div class="card">
   <div class="card-head">
-    <div class="card-head-icon">👤</div>
-    <div>
-      <h2>Station Owner</h2>
-      <p>Identifies this node in the mesonet</p>
-    </div>
+    <div class="card-icon">👤</div>
+    <div><h2>Station Owner</h2><p>Identifies this node in the mesonet</p></div>
   </div>
   <div class="card-body">
-    <div class="field">
-      <label>First Name</label>
-      <input type="text" id="firstname" placeholder="Pouya" />
-    </div>
-    <div class="field">
-      <label>Last Name</label>
-      <input type="text" id="lastname" placeholder="Shaeri" />
-    </div>
-    <div class="field full">
-      <label>Email</label>
-      <input type="email" id="email" placeholder="you@example.com" />
-    </div>
-    <div class="field full">
-      <label>Organization</label>
-      <input type="text" id="organization" placeholder="SIParCS UCAR" />
-    </div>
-    <div class="field full">
-      <label>Device</label>
-      <input type="text" id="device" value="adafruit RP2040 RFM95 LoRa" />
-    </div>
+    <div class="field"><label>First Name</label><input type="text" id="firstname" placeholder="Pouya"/></div>
+    <div class="field"><label>Last Name</label><input type="text" id="lastname" placeholder="Shaeri"/></div>
+    <div class="field full"><label>Email</label><input type="email" id="email" placeholder="you@example.com"/></div>
+    <div class="field full"><label>Organization</label><input type="text" id="organization" placeholder="SIParCS UCAR"/></div>
+    <div class="field full"><label>Device</label><input type="text" id="device" value="adafruit RP2040 RFM95 LoRa"/></div>
   </div>
 </div>
 
 <!-- Location -->
 <div class="card">
   <div class="card-head">
-    <div class="card-head-icon">📍</div>
-    <div>
-      <h2>Location</h2>
-      <p>Deployment coordinates — used if GPS is not connected</p>
-    </div>
+    <div class="card-icon">📍</div>
+    <div><h2>Location</h2><p>Used when GPS is not connected</p></div>
   </div>
   <div class="card-body triple">
-    <div class="field">
-      <label>Latitude</label>
-      <input type="number" id="latitude" step="0.0001" placeholder="39.9784" />
-      <span class="hint">decimal degrees</span>
-    </div>
-    <div class="field">
-      <label>Longitude</label>
-      <input type="number" id="longitude" step="0.0001" placeholder="-105.2749" />
-      <span class="hint">decimal degrees</span>
-    </div>
-    <div class="field">
-      <label>Altitude</label>
-      <input type="number" id="altitude" step="0.1" placeholder="1650.0" />
-      <span class="hint">metres ASL</span>
-    </div>
+    <div class="field"><label>Latitude</label><input type="number" id="latitude" step="0.0001" placeholder="39.9784"/><span class="hint">decimal degrees</span></div>
+    <div class="field"><label>Longitude</label><input type="number" id="longitude" step="0.0001" placeholder="-105.2749"/><span class="hint">decimal degrees</span></div>
+    <div class="field"><label>Altitude</label><input type="number" id="altitude" step="0.1" placeholder="1650.0"/><span class="hint">metres ASL</span></div>
     <div class="field full">
       <div class="toggle-row">
-        <input type="checkbox" id="fixed_deployment" />
-        <label for="fixed_deployment">Fixed deployment (GPS only updates every <strong>gps_fixed_interval</strong>)</label>
+        <input type="checkbox" id="fixed_deployment"/>
+        <label for="fixed_deployment">Fixed deployment (GPS only updates every gps_fixed_interval)</label>
       </div>
     </div>
   </div>
@@ -359,144 +121,63 @@
 <!-- Timing -->
 <div class="card">
   <div class="card-head">
-    <div class="card-head-icon">⏱</div>
-    <div>
-      <h2>Timing</h2>
-      <p>Transmission and update intervals</p>
-    </div>
+    <div class="card-icon">⏱</div>
+    <div><h2>Timing</h2><p>Transmission intervals in milliseconds</p></div>
   </div>
   <div class="card-body">
-    <div class="field">
-      <label>Sensor transmit delay</label>
-      <input type="number" id="sensor_transmit_delay" value="60000" />
-      <span class="hint">ms — how often sensors publish</span>
-    </div>
-    <div class="field">
-      <label>Station info interval</label>
-      <input type="number" id="station_info_interval" value="86400000" />
-      <span class="hint">ms — default 24 h</span>
-    </div>
-    <div class="field">
-      <label>GPS fixed interval</label>
-      <input type="number" id="gps_fixed_interval" value="43200000" />
-      <span class="hint">ms — default 12 h</span>
-    </div>
+    <div class="field"><label>Sensor transmit delay</label><input type="number" id="sensor_transmit_delay" value="60000"/><span class="hint">ms — how often sensors publish</span></div>
+    <div class="field"><label>Station info interval</label><input type="number" id="station_info_interval" value="86400000"/><span class="hint">ms — default 24 h</span></div>
+    <div class="field"><label>GPS fixed interval</label><input type="number" id="gps_fixed_interval" value="43200000"/><span class="hint">ms — default 12 h</span></div>
   </div>
 </div>
 
-<!-- Advanced: Radio -->
-<div class="advanced-toggle" onclick="toggleAdvanced()">
+<!-- Advanced radio -->
+<div class="adv-toggle" onclick="toggleAdv()">
   <span id="adv-arrow">▶</span> Advanced — radio tuning (leave as defaults unless you know what you're doing)
 </div>
-
-<div class="advanced-body" id="adv-body">
+<div class="adv-body" id="adv-body">
   <div class="card">
     <div class="card-head">
-      <div class="card-head-icon">📡</div>
-      <div>
-        <h2>Radio / Mesh</h2>
-        <p>LoRa relay scoring and timeout parameters</p>
-      </div>
+      <div class="card-icon">📡</div>
+      <div><h2>Radio / Mesh</h2><p>LoRa relay scoring and timeout parameters</p></div>
     </div>
     <div class="card-body">
-      <div class="field">
-        <label>Overload threshold</label>
-        <input type="number" id="overload_threshold" step="0.01" value="0.85" />
-      </div>
-      <div class="field">
-        <label>Pong timeout (ms)</label>
-        <input type="number" id="pong_timeout" value="2000" />
-      </div>
-      <div class="field">
-        <label>Connect timeout (ms)</label>
-        <input type="number" id="connect_timeout" value="900000" />
-      </div>
-      <div class="field">
-        <label>Relay midpoint</label>
-        <input type="number" id="station_relay_midpoint" step="0.1" value="10" />
-      </div>
-      <div class="field">
-        <label>Relay steepness</label>
-        <input type="number" id="station_relay_steepness" step="0.01" value="0.2" />
-      </div>
-      <div class="field">
-        <label>Sensor midpoint</label>
-        <input type="number" id="station_sensor_midpoint" step="0.1" value="5" />
-      </div>
-      <div class="field">
-        <label>Sensor steepness</label>
-        <input type="number" id="station_sensor_steepness" step="0.01" value="0.5" />
-      </div>
-      <div class="field">
-        <label>Relay weight</label>
-        <input type="number" id="station_relay_weight" step="0.01" value="0.7" />
-      </div>
-      <div class="field">
-        <label>Sensor weight</label>
-        <input type="number" id="station_sensor_weight" step="0.01" value="0.3" />
-      </div>
-      <div class="field">
-        <label>Score RSSI weight</label>
-        <input type="number" id="score_rssi_weight" step="0.01" value="0.35" />
-      </div>
-      <div class="field">
-        <label>Score load weight</label>
-        <input type="number" id="score_load_weight" step="0.01" value="0.35" />
-      </div>
-      <div class="field">
-        <label>Score type weight</label>
-        <input type="number" id="score_type_weight" step="0.01" value="0.2" />
-      </div>
-      <div class="field">
-        <label>Score relay weight</label>
-        <input type="number" id="score_relay_weight" step="0.01" value="0.1" />
-      </div>
-      <div class="field">
-        <label>Score relay decay</label>
-        <input type="number" id="score_relay_decay" step="0.01" value="1.0" />
-      </div>
+      <div class="field"><label>Overload threshold</label><input type="number" id="overload_threshold" step="0.01" value="0.85"/></div>
+      <div class="field"><label>Pong timeout (ms)</label><input type="number" id="pong_timeout" value="2000"/></div>
+      <div class="field"><label>Connect timeout (ms)</label><input type="number" id="connect_timeout" value="900000"/></div>
+      <div class="field"><label>Relay midpoint</label><input type="number" id="station_relay_midpoint" step="0.1" value="10"/></div>
+      <div class="field"><label>Relay steepness</label><input type="number" id="station_relay_steepness" step="0.01" value="0.2"/></div>
+      <div class="field"><label>Sensor midpoint</label><input type="number" id="station_sensor_midpoint" step="0.1" value="5"/></div>
+      <div class="field"><label>Sensor steepness</label><input type="number" id="station_sensor_steepness" step="0.01" value="0.5"/></div>
+      <div class="field"><label>Relay weight</label><input type="number" id="station_relay_weight" step="0.01" value="0.7"/></div>
+      <div class="field"><label>Sensor weight</label><input type="number" id="station_sensor_weight" step="0.01" value="0.3"/></div>
+      <div class="field"><label>Score RSSI weight</label><input type="number" id="score_rssi_weight" step="0.01" value="0.35"/></div>
+      <div class="field"><label>Score load weight</label><input type="number" id="score_load_weight" step="0.01" value="0.35"/></div>
+      <div class="field"><label>Score type weight</label><input type="number" id="score_type_weight" step="0.01" value="0.2"/></div>
+      <div class="field"><label>Score relay weight</label><input type="number" id="score_relay_weight" step="0.01" value="0.1"/></div>
+      <div class="field"><label>Score relay decay</label><input type="number" id="score_relay_decay" step="0.01" value="1.0"/></div>
     </div>
   </div>
 </div>
 
-<!-- Actions -->
 <div class="action-bar">
-  <button class="btn btn-primary" onclick="generate()">Generate config.json</button>
-  <button class="btn btn-ghost" id="btn-copy" disabled onclick="copyJSON()">Copy JSON</button>
-  <button class="btn btn-green" id="btn-dl" disabled onclick="download()">⬇ Download</button>
+  <button class="btn btn-primary" onclick="saveAndContinue()">Continue to Flash →</button>
 </div>
 
-<!-- Preview -->
-<div class="preview-wrap" id="preview-wrap">
-  <div class="preview-label">config.json preview</div>
-  <pre class="preview-box" id="preview-box"></pre>
-</div>
-
-<!-- Next step -->
 <div class="next-banner" id="next-banner">
   <div>
-    <strong>config.json is ready</strong>
-    <p>Save the file, then go to Step 2 to flash your firmware and upload this config to the board.</p>
+    <strong>Config saved</strong>
+    <p>Your settings are ready. On the next page, download the combined <code>.uf2</code> and drag it onto your board.</p>
   </div>
-  <a class="btn btn-primary" href="index.html#rp2040">Go to Flash →</a>
+  <a class="btn btn-green" href="index.html#rp2040">Go to Flash →</a>
 </div>
 
 <script>
-  let generatedJSON = '';
+  function v(id)  { return document.getElementById(id).value.trim(); }
+  function n(id)  { const x = parseFloat(document.getElementById(id).value); return isNaN(x) ? 0 : x; }
+  function ni(id) { const x = parseInt(document.getElementById(id).value);   return isNaN(x) ? 0 : x; }
 
-  function v(id) {
-    return document.getElementById(id).value.trim();
-  }
-  function n(id) {
-    const val = parseFloat(document.getElementById(id).value);
-    return isNaN(val) ? 0 : val;
-  }
-  function ni(id) {
-    const val = parseInt(document.getElementById(id).value);
-    return isNaN(val) ? 0 : val;
-  }
-
-  function generate() {
+  function saveAndContinue() {
     const config = {
       radio: {
         overload_threshold:       n('overload_threshold'),
@@ -515,55 +196,28 @@
         connect_timeout:          ni('connect_timeout')
       },
       station_info: {
-        firstname:              v('firstname'),
-        lastname:               v('lastname'),
-        email:                  v('email'),
-        organization:           v('organization'),
-        device:                 v('device'),
-        latitude:               n('latitude'),
-        longitude:              n('longitude'),
-        altitude:               n('altitude'),
-        station_info_interval:  ni('station_info_interval'),
-        fixed_deployment:       document.getElementById('fixed_deployment').checked,
-        gps_fixed_interval:     ni('gps_fixed_interval'),
-        sensor_transmit_delay:  ni('sensor_transmit_delay')
+        firstname:             v('firstname'),
+        lastname:              v('lastname'),
+        email:                 v('email'),
+        organization:          v('organization'),
+        device:                v('device'),
+        latitude:              n('latitude'),
+        longitude:             n('longitude'),
+        altitude:              n('altitude'),
+        station_info_interval: ni('station_info_interval'),
+        fixed_deployment:      document.getElementById('fixed_deployment').checked,
+        gps_fixed_interval:    ni('gps_fixed_interval'),
+        sensor_transmit_delay: ni('sensor_transmit_delay')
       }
     };
-
-    generatedJSON = JSON.stringify(config, null, 2);
-    document.getElementById('preview-box').textContent = generatedJSON;
-    document.getElementById('preview-wrap').classList.add('visible');
+    sessionStorage.setItem('iotwx_config', JSON.stringify(config));
     document.getElementById('next-banner').classList.add('visible');
-    document.getElementById('btn-copy').disabled = false;
-    document.getElementById('btn-dl').disabled = false;
-
-    // Store in sessionStorage so flash page can hint the user
-    sessionStorage.setItem('configReady', '1');
   }
 
-  function copyJSON() {
-    navigator.clipboard.writeText(generatedJSON).then(() => {
-      const btn = document.getElementById('btn-copy');
-      btn.textContent = 'Copied!';
-      setTimeout(() => btn.textContent = 'Copy JSON', 1500);
-    });
-  }
-
-  function download() {
-    const blob = new Blob([generatedJSON], { type: 'application/json' });
-    const url  = URL.createObjectURL(blob);
-    const a    = document.createElement('a');
-    a.href     = url;
-    a.download = 'config.json';
-    a.click();
-    URL.revokeObjectURL(url);
-  }
-
-  function toggleAdvanced() {
-    const body  = document.getElementById('adv-body');
-    const arrow = document.getElementById('adv-arrow');
-    const open  = body.classList.toggle('open');
-    arrow.textContent = open ? '▼' : '▶';
+  function toggleAdv() {
+    const b = document.getElementById('adv-body');
+    const a = document.getElementById('adv-arrow');
+    a.textContent = b.classList.toggle('open') ? '▼' : '▶';
   }
 </script>
 </body>

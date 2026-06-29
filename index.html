@@ -256,7 +256,7 @@
 </nav>
 
 <div class="page-header">
-  <div class="eyebrow">Step 2 of 2</div>
+  <div class="eyebrow">Step 2 of 2 — Flash</div>
   <h1>Flash your device</h1>
   <p>Connect your board and follow the steps below. Chrome or Edge required — Web Serial and the File System Access API are not supported in Firefox.</p>
 </div>
@@ -269,10 +269,6 @@
 <!-- ══════════════ RP2040 PANEL ══════════════ -->
 <div class="panel active" id="panel-rp2040">
 
-  <div id="config-hint" class="info-box green" style="display:none">
-    <strong>✓ Config ready</strong> — you just built a config.json. Upload it in Step 3 below after flashing the firmware.
-  </div>
-
   <div class="steps-list">
 
     <!-- ── Step 1: Enter BOOTSEL ── -->
@@ -280,84 +276,46 @@
       <div class="step-num">1</div>
       <div class="step-content">
         <h3>Enter BOOTSEL mode</h3>
-        <p>Hold the <strong>BOOTSEL</strong> button on your Feather, plug in USB, then release. Your board appears as a drive named <strong>RPI-RP2</strong>. Then click the button below.</p>
+        <p>Hold the <strong>BOOTSEL</strong> button on your Feather, plug in the USB cable, then release. Your board mounts as a removable drive named <strong>RPI-RP2</strong>. Click below when it appears.</p>
         <div class="action-row">
-          <button class="btn btn-sky" onclick="checkBootsel()">🔍 Detect RPI-RP2 drive</button>
+          <button class="btn btn-sky" onclick="checkBootsel()">✓ Board is in BOOTSEL mode</button>
         </div>
         <div class="status" id="s1-status"></div>
       </div>
     </div>
 
-    <!-- ── Step 2: Flash firmware ── -->
+    <!-- ── Step 2: Download combined UF2 ── -->
     <div class="step-item" id="s2">
       <div class="step-num">2</div>
       <div class="step-content">
-        <h3>Flash firmware</h3>
-        <p>Choose how to get the firmware onto the board.</p>
+        <h3>Download your personalised firmware</h3>
+        <p>This builds a single <code>.uf2</code> containing <strong>both the firmware and your config</strong> — one file, one drag, done. Your config is baked in from Step 1.</p>
 
-        <div class="method-tabs">
-          <button class="method-tab active" onclick="setMethod('builtin', this)">Pre-built firmware</button>
-          <button class="method-tab"        onclick="setMethod('custom',  this)">My own .uf2</button>
+        <div class="info-box green" id="cfg-ready-hint" style="display:none; margin-top:0.75rem; font-size:0.82rem">
+          <strong>✓ Config loaded</strong> — your station details from Step 1 are ready to embed.
+        </div>
+        <div class="info-box amber" id="cfg-missing-hint" style="display:none; margin-top:0.75rem; font-size:0.82rem">
+          <strong>No config found.</strong> <a href="config.html" style="color:#92400e; font-weight:600;">Go back to Step 1</a> to fill in your details first.
         </div>
 
-        <!-- Pre-built -->
-        <div class="method-panel active" id="mp-builtin">
-          <p style="font-size:0.82rem; color:var(--ink2)">Writes the bundled IoTwx RP2040 firmware directly to the RPI-RP2 drive.</p>
-          <div class="action-row">
-            <button class="btn btn-sky" id="btn-flash-builtin" onclick="flashBuiltin()">⚡ Flash pre-built firmware</button>
-          </div>
+        <div class="action-row" style="margin-top:0.85rem">
+          <button class="btn btn-sky" id="btn-dl-combined" onclick="downloadCombined()">⬇ Build &amp; Download mesonet.uf2</button>
         </div>
 
-        <!-- Custom .uf2 -->
-        <div class="method-panel" id="mp-custom">
-          <div class="upload-zone" onclick="document.getElementById('uf2-input').click()"
-               ondragover="zoneDrag(event,'uf2-zone')" ondrop="zoneDrop(event,'uf2-zone','uf2-input',selectUF2)"
-               ondragleave="zoneLeave('uf2-zone')" id="uf2-zone">
-            <div>📦</div>
-            <input type="file" id="uf2-input" accept=".uf2" onchange="selectUF2(this.files[0])"/>
-            <p>Drag your <strong>.uf2</strong> here, or click to browse</p>
-            <div class="fname" id="uf2-name"></div>
-          </div>
-          <div class="action-row">
-            <button class="btn btn-sky" id="btn-flash-custom" disabled onclick="flashCustom()">⚡ Flash this .uf2</button>
-          </div>
-        </div>
-
-        <div class="progress-wrap" id="fw-progress">
-          <div class="progress-bar"><div class="progress-fill" id="fw-fill"></div></div>
-          <div class="progress-label" id="fw-label"></div>
+        <div class="progress-wrap" id="build-progress">
+          <div class="progress-bar"><div class="progress-fill" id="build-fill" style="width:0%"></div></div>
+          <div class="progress-label" id="build-label">Fetching files…</div>
         </div>
         <div class="status" id="s2-status"></div>
+
+        <div class="info-box amber" style="margin-top:0.85rem; font-size:0.8rem">
+          <strong>How to flash:</strong> Hold <strong>BOOTSEL</strong> + plug in USB → wait for <strong>RPI-RP2</strong> to appear in File Explorer → drag <code>mesonet.uf2</code> onto it → drive disappears → board reboots with firmware + config. Done.
+        </div>
+        <div class="action-row" style="margin-top:0.6rem">
+          <button class="btn btn-green" id="btn-done" disabled onclick="markDone('s2')">✓ Done — board is flashed</button>
+        </div>
       </div>
     </div>
-
-    <!-- ── Step 3: Upload config ── -->
-    <div class="step-item" id="s3">
-      <div class="step-num">3</div>
-      <div class="step-content">
-        <h3>Upload config.json</h3>
-        <p>After flashing, hold <strong>BOOTSEL</strong> and re-plug to enter bootloader again. Select the config file you downloaded from Step 1, then write it to the board — it lands on the LittleFS partition.</p>
-
-        <div class="upload-zone" id="cfg-zone"
-             onclick="document.getElementById('config-input').click()"
-             ondragover="zoneDrag(event,'cfg-zone')" ondrop="zoneDrop(event,'cfg-zone','config-input',selectConfig)"
-             ondragleave="zoneLeave('cfg-zone')">
-          <div>📄</div>
-          <input type="file" id="config-input" accept=".json" onchange="selectConfig(this.files[0])"/>
-          <p>Drag your <strong>config.json</strong> here, or click to browse</p>
-          <div class="fname" id="config-name"></div>
-        </div>
-
-        <div class="action-row">
-          <button class="btn btn-green" id="btn-flash-cfg" disabled onclick="flashConfig()">⚡ Write config to board</button>
-          <a class="btn btn-ghost" href="config.html" style="font-size:0.82rem">Build config →</a>
-        </div>
-        <div class="progress-wrap" id="cfg-progress">
-          <div class="progress-bar"><div class="progress-fill" id="cfg-fill"></div></div>
-          <div class="progress-label" id="cfg-label"></div>
-        </div>
-        <div class="status" id="s3-status"></div>
-      </div>
     </div>
 
   </div>
@@ -454,155 +412,62 @@
     if (file) handler(file);
   };
 
-  // ── File System Access API: write file to a chosen drive ──
-  // On Windows, the RPI-RP2 drive root reports its name as "\" or ""
-  // so we skip name validation and just write — the user chose it.
-  async function writeFileToDrive(buffer, filename) {
-    if (!('showDirectoryPicker' in window)) {
-      throw new Error('File System Access API not supported — use Chrome or Edge 86+.');
-    }
-    let dir;
-    try {
-      dir = await window.showDirectoryPicker({ mode: 'readwrite' });
-    } catch (e) {
-      if (e.name === 'AbortError') throw new Error('Cancelled — no drive selected.');
-      throw e;
-    }
-    window._rpiDir = dir; // cache for subsequent calls
-    const fh = await dir.getFileHandle(filename, { create: true });
-    const wr = await fh.createWritable();
-    await wr.write(buffer);
-    await wr.close();
+  // ── Step 1: Confirm BOOTSEL ──────────────────────────────
+  window.checkBootsel = () => {
+    setStatus('s1-status', '✓ Good — RPI-RP2 drive is visible. Proceed to Step 2.', 'ok');
+    markDone('s1');
+    activateStep('s2');
+  };
+
+  // ── Step 3: Build config.uf2 in browser + download ───────
+  import { buildCombinedUF2 } from './js/patch-uf2.js';
+
+  // ── Show config status hint ──────────────────────────────
+  const _storedConfig = sessionStorage.getItem('iotwx_config');
+  if (_storedConfig) {
+    document.getElementById('cfg-ready-hint').style.display = 'block';
+  } else {
+    document.getElementById('cfg-missing-hint').style.display = 'block';
   }
 
-  // ── Step 1: Detect BOOTSEL drive ─────────────────────────
-  // We just ask the user to pick the drive; any drive is accepted
-  // since Windows reports the RP2040 root as "\" anyway.
-  window.checkBootsel = async () => {
-    if (!('showDirectoryPicker' in window)) {
-      setStatus('s1-status', '✗ File System Access API not supported — use Chrome or Edge.', 'err');
+  // ── Build + download combined UF2 ────────────────────────
+  window.downloadCombined = async () => {
+    const jsonStr = sessionStorage.getItem('iotwx_config');
+    if (!jsonStr) {
+      setStatus('s2-status', 'No config — go back to Step 1 first.', 'err');
       return;
     }
-    try {
-      setStatus('s1-status', 'Select the RPI-RP2 drive in the folder picker…', 'info');
-      const dir = await window.showDirectoryPicker({ mode: 'readwrite' });
-      window._rpiDir = dir;
-      // On Windows the drive root name is "\" or empty — accept anything
-      setStatus('s1-status', `✓ Drive selected ("${dir.name || 'RPI-RP2'}") — board is ready.`, 'ok');
-      markDone('s1');
-      activateStep('s2');
-    } catch (e) {
-      if (e.name === 'AbortError') {
-        setStatus('s1-status', 'No drive selected. Hold BOOTSEL, re-plug, then try again.', 'err');
-      } else {
-        setStatus('s1-status', '✗ ' + e.message, 'err');
-      }
-    }
-  };
+    const prog  = document.getElementById('build-progress');
+    const fill  = document.getElementById('build-fill');
+    const label = document.getElementById('build-label');
+    prog.classList.add('visible');
 
-  // ── Write buffer to the cached drive dir ─────────────────
-  async function writeToCachedDir(buffer, filename, statusId, progressIds) {
-    let dir = window._rpiDir;
-    if (!dir) {
-      // No cached handle — ask user to pick again
-      setStatus(statusId, 'Select the RPI-RP2 drive in the folder picker…', 'info');
-      dir = await (async () => {
-        const d = await window.showDirectoryPicker({ mode: 'readwrite' });
-        window._rpiDir = d;
-        return d;
-      })();
-    }
     try {
-      setProgress(progressIds[0], progressIds[1], progressIds[2], 0, 1);
-      const fh = await dir.getFileHandle(filename, { create: true });
-      const wr = await fh.createWritable();
-      await wr.write(buffer);
-      await wr.close();
-      setProgress(progressIds[0], progressIds[1], progressIds[2], 1, 1);
-    } catch (e) {
-      if (e.name === 'NotAllowedError' || e.name === 'SecurityError') {
-        // Handle revoked after board reboot — ask user to re-select
-        setStatus(statusId, 'Drive access expired (board rebooted). Select RPI-RP2 again…', 'info');
-        window._rpiDir = null;
-        const d = await window.showDirectoryPicker({ mode: 'readwrite' });
-        window._rpiDir = d;
-        const fh = await d.getFileHandle(filename, { create: true });
-        const wr = await fh.createWritable();
-        await wr.write(buffer);
-        await wr.close();
-        setProgress(progressIds[0], progressIds[1], progressIds[2], 1, 1);
-      } else {
-        throw e;
-      }
-    }
-  }
+      label.textContent = 'Fetching firmware…';
+      fill.style.width  = '20%';
+      const configObj = JSON.parse(jsonStr);
 
-  // ── Step 2a: Flash pre-built ──────────────────────────────
-  window.flashBuiltin = async () => {
-    try {
-      setStatus('s2-status', 'Fetching firmware…', 'info');
-      const r = await fetch('firmware/mesonet_rp2040.uf2');
-      if (!r.ok) throw new Error('firmware/mesonet_rp2040.uf2 not found — add it to the repo and push first.');
-      const buf = await r.arrayBuffer();
-      setStatus('s2-status', 'Writing to board…', 'info');
-      await writeToCachedDir(buf, 'firmware.uf2', 's2-status', ['fw-fill','fw-label','fw-progress']);
-      setStatus('s2-status', '✓ Firmware written — board is rebooting automatically.', 'ok');
-      markDone('s2');
-      activateStep('s3');
-    } catch (e) {
-      if (e.name === 'AbortError') setStatus('s2-status', 'Cancelled — no drive selected.', 'err');
-      else setStatus('s2-status', '✗ ' + e.message, 'err');
-    }
-  };
+      label.textContent = 'Patching config into firmware…';
+      fill.style.width  = '60%';
+      const buf = await buildCombinedUF2(configObj);
 
-  // ── Step 2b: Flash custom .uf2 ───────────────────────────
-  let customUF2file = null;
-  window.selectUF2 = (file) => {
-    customUF2file = file;
-    document.getElementById('uf2-name').textContent = file.name;
-    document.getElementById('btn-flash-custom').disabled = false;
-  };
-  window.flashCustom = async () => {
-    if (!customUF2file) return;
-    try {
-      setStatus('s2-status', 'Reading file…', 'info');
-      const buf = await customUF2file.arrayBuffer();
-      setStatus('s2-status', 'Writing to board…', 'info');
-      await writeToCachedDir(buf, 'firmware.uf2', 's2-status', ['fw-fill','fw-label','fw-progress']);
-      setStatus('s2-status', '✓ Firmware written — board is rebooting automatically.', 'ok');
-      markDone('s2');
-      activateStep('s3');
-    } catch (e) {
-      if (e.name === 'AbortError') setStatus('s2-status', 'Cancelled — no drive selected.', 'err');
-      else setStatus('s2-status', '✗ ' + e.message, 'err');
-    }
-  };
+      label.textContent = 'Preparing download…';
+      fill.style.width  = '90%';
+      const blob = new Blob([buf], { type: 'application/octet-stream' });
+      const url  = URL.createObjectURL(blob);
+      const a    = document.createElement('a');
+      a.href     = url;
+      a.download = 'mesonet.uf2';
+      a.click();
+      URL.revokeObjectURL(url);
 
-  // ── Step 3: Upload config.json ───────────────────────────
-  // Config goes to LittleFS; until the in-browser LittleFS builder
-  // is merged, we write it as a raw JSON to the drive so the user
-  // can also use Arduino IDE "Pico LittleFS Data Upload" as fallback.
-  let configFile = null;
-  window.selectConfig = (file) => {
-    configFile = file;
-    document.getElementById('config-name').textContent = file.name;
-    document.getElementById('btn-flash-cfg').disabled = false;
-  };
-  window.flashConfig = async () => {
-    if (!configFile) return;
-    try {
-      setStatus('s3-status', 'Reading config.json…', 'info');
-      const buf = await configFile.arrayBuffer();
-      setStatus('s3-status', 'Hold BOOTSEL, re-plug, then select the RPI-RP2 drive in the picker…', 'info');
-      // Clear cached handle — board rebooted since firmware flash
-      window._rpiDir = null;
-      await writeToCachedDir(buf, 'config.json', 's3-status', ['cfg-fill','cfg-label','cfg-progress']);
-      setStatus('s3-status', '✓ config.json written to RPI-RP2. Now use Arduino IDE → Tools → Pico LittleFS Data Upload to flash it into the LittleFS partition.', 'ok');
-      markDone('s3');
-      sessionStorage.removeItem('configReady');
+      fill.style.width  = '100%';
+      label.textContent = 'Done!';
+      setStatus('s2-status', '✓ mesonet.uf2 downloaded — drag it onto RPI-RP2.', 'ok');
+      document.getElementById('btn-done').disabled = false;
     } catch (e) {
-      if (e.name === 'AbortError') setStatus('s3-status', 'Cancelled — no drive selected.', 'err');
-      else setStatus('s3-status', '✗ ' + e.message, 'err');
+      setStatus('s2-status', '✗ ' + e.message, 'err');
+      prog.classList.remove('visible');
     }
   };
 </script>
