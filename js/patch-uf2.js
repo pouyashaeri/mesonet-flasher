@@ -1,14 +1,5 @@
 /**
- * patch-uf2.js
- *
- * Patches placeholder strings directly in the firmware UF2 binary.
- *
- * Strategy: search raw file bytes for the placeholder prefix (the part
- * that fits before any block boundary), then write replacement bytes
- * at those raw positions — but ONLY to payload slots (inBlk 32-287).
- * Any replacement bytes that would fall in header (0-31) or padding
- * (288-511) regions are written to the NEXT block's payload instead,
- * by following the flash address sequence.
+ * patch-uf2.js — flash address map approach with contiguity check fix
  */
 
 const PLACEHOLDERS = {
@@ -48,21 +39,12 @@ function validateUF2(u8, label) {
   return blocks;
 }
 
-/**
- * Build a map from flash address → file offset, using the target address
- * field in each UF2 block header. This is the definitive way to find
- * where any flash byte lives in the file.
- * 
- * Each block carries 256 bytes at [targetAddr .. targetAddr+255].
- * File payload bytes are at [blockStart+32 .. blockStart+287].
- */
 function buildAddressMap(u8) {
   const blocks = u8.length / 512;
-  // Map: flashAddr → fileOffset
   const map = new Map();
   for (let i = 0; i < blocks; i++) {
-    const base        = i * 512;
-    const targetAddr  = readU32LE(u8, base + 12);
+    const base       = i * 512;
+    const targetAddr = readU32LE(u8, base + 12);
     for (let j = 0; j < 256; j++) {
       map.set(targetAddr + j, base + 32 + j);
     }
@@ -70,26 +52,18 @@ function buildAddressMap(u8) {
   return map;
 }
 
-/**
- * Find the flash address where a marker string starts.
- * Searches by reconstructing flash content from the address map.
- * This works even when the string spans block boundaries, because
- * flash addresses are contiguous even if file offsets are not.
- */
 function findMarkerInFlash(u8, addrMap, markerStr) {
   const enc    = new TextEncoder();
   const needle = enc.encode(markerStr);
 
-  // Get all flash addresses covered by this UF2, sorted
+  // Sort all flash addresses covered by this UF2
   const addrs = [...addrMap.keys()].sort((a, b) => a - b);
 
   outer: for (let ai = 0; ai <= addrs.length - needle.length; ai++) {
-    // Check if needle matches starting at addrs[ai]
-    // Addresses must be contiguous for a match
+    // Addresses must be contiguous: addrs[ai+j] === addrs[ai] + j
     for (let j = 0; j < needle.length; j++) {
-      const addr = addrs[ai] + j;
-      if (!addrMap.has(addr)) continue outer;
-      const fileOff = addrMap.get(addr);
+      if (addrs[ai + j] !== addrs[ai] + j) continue outer; // gap in addresses
+      const fileOff = addrMap.get(addrs[ai + j]);
       if (u8[fileOff] !== needle[j]) continue outer;
     }
     return addrs[ai]; // flash address where marker starts
@@ -97,10 +71,6 @@ function findMarkerInFlash(u8, addrMap, markerStr) {
   return -1;
 }
 
-/**
- * Patch a placeholder by flash address, writing replacement bytes
- * to the correct file offsets via the address map.
- */
 function patchByFlashAddress(u8, addrMap, field, value, marker, maxLen) {
   const enc        = new TextEncoder();
   const valueBytes = enc.encode(value);
@@ -117,11 +87,9 @@ function patchByFlashAddress(u8, addrMap, field, value, marker, maxLen) {
     );
   }
 
-  // Build replacement: value + null padding to maxLen
-  const replacement = new Uint8Array(maxLen); // zeroed
+  const replacement = new Uint8Array(maxLen);
   replacement.set(valueBytes);
 
-  // Write each byte to its file offset via the address map
   for (let i = 0; i < maxLen; i++) {
     const flashAddr = startFlashAddr + i;
     const fileOff   = addrMap.get(flashAddr);
@@ -132,26 +100,17 @@ function patchByFlashAddress(u8, addrMap, field, value, marker, maxLen) {
   }
 }
 
-/**
- * Patch all placeholder fields in the firmware UF2.
- */
 function patchFirmwareUF2(fwBuf, configObj) {
   const u8 = new Uint8Array(fwBuf.slice(0));
   validateUF2(u8, 'firmware');
-
   const addrMap = buildAddressMap(u8);
-
   for (const [field, { marker, maxLen }] of Object.entries(PLACEHOLDERS)) {
     const value = String(configObj?.station_info?.[field] ?? '');
     patchByFlashAddress(u8, addrMap, field, value, marker, maxLen);
   }
-
   return u8.buffer;
 }
 
-/**
- * Combine firmware + config template into one UF2, renumber all blocks.
- */
 function combineAndRenumber(fwU8, cfgU8) {
   const fwBlocks  = fwU8.length  / 512;
   const cfgBlocks = cfgU8.length / 512;
@@ -167,9 +126,6 @@ function combineAndRenumber(fwU8, cfgU8) {
   return out.buffer;
 }
 
-/**
- * Main entry: fetch firmware + config template, patch user info, combine.
- */
 export async function buildCombinedUF2(
   configObj,
   firmwareUrl = 'firmware/mesonet_rp2040.uf2',
