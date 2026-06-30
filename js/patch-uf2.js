@@ -2,17 +2,20 @@
  * patch-uf2.js
  *
  * Patches placeholder strings directly in the firmware UF2 binary.
- * Handles placeholders that span across UF2 payload/header boundaries.
  *
- * Strategy: extract all payload bytes into a flat virtual buffer,
- * search there, then write back using a payload-offset → file-offset map.
+ * Strategy: search raw file bytes for the placeholder prefix (the part
+ * that fits before any block boundary), then write replacement bytes
+ * at those raw positions — but ONLY to payload slots (inBlk 32-287).
+ * Any replacement bytes that would fall in header (0-31) or padding
+ * (288-511) regions are written to the NEXT block's payload instead,
+ * by following the flash address sequence.
  */
 
 const PLACEHOLDERS = {
-  firstname:    { marker: 'IOTWX_FIRSTNAME_PLACEHOLDER_____',               maxLen: 48 },
-  lastname:     { marker: 'IOTWX_LASTNAME_PLACEHOLDER______',               maxLen: 48 },
-  email:        { marker: 'IOTWX_EMAIL_PLACEHOLDER_________________________', maxLen: 64 },
-  organization: { marker: 'IOTWX_ORGANIZATION_PLACEHOLDER__________________', maxLen: 64 },
+  firstname:    { marker: 'IOTWXFNAME0000000000000000000000',               maxLen: 48 },
+  lastname:     { marker: 'IOTWXLNAME1111111111111111111111',               maxLen: 48 },
+  email:        { marker: 'IOTWXEMAIL22222222222222222222222222222222222222', maxLen: 64 },
+  organization: { marker: 'IOTWXORGS3333333333333333333333333333333333333333', maxLen: 64 },
 };
 
 const UF2_MAGIC0 = 0x0A324655;
@@ -46,48 +49,59 @@ function validateUF2(u8, label) {
 }
 
 /**
- * Build a virtual flat buffer of all payload bytes,
- * plus a map from virtual offset → file offset.
- * This lets us search linearly across payload regions
- * even when the data is split by UF2 headers.
+ * Build a map from flash address → file offset, using the target address
+ * field in each UF2 block header. This is the definitive way to find
+ * where any flash byte lives in the file.
+ * 
+ * Each block carries 256 bytes at [targetAddr .. targetAddr+255].
+ * File payload bytes are at [blockStart+32 .. blockStart+287].
  */
-function buildPayloadView(u8) {
-  const blocks   = u8.length / 512;
-  const virtual  = new Uint8Array(blocks * 256); // 256 payload bytes per block
-  const fileMap  = new Int32Array(blocks * 256); // virtual[i] lives at u8[fileMap[i]]
-
+function buildAddressMap(u8) {
+  const blocks = u8.length / 512;
+  // Map: flashAddr → fileOffset
+  const map = new Map();
   for (let i = 0; i < blocks; i++) {
-    const payloadStart = i * 512 + 32;
+    const base        = i * 512;
+    const targetAddr  = readU32LE(u8, base + 12);
     for (let j = 0; j < 256; j++) {
-      const virt = i * 256 + j;
-      virtual[virt]  = u8[payloadStart + j];
-      fileMap[virt]  = payloadStart + j;
+      map.set(targetAddr + j, base + 32 + j);
     }
   }
-  return { virtual, fileMap };
+  return map;
 }
 
 /**
- * Find a marker string in the virtual payload buffer.
- * Returns virtual offset or -1.
+ * Find the flash address where a marker string starts.
+ * Searches by reconstructing flash content from the address map.
+ * This works even when the string spans block boundaries, because
+ * flash addresses are contiguous even if file offsets are not.
  */
-function findInVirtual(virtual, markerStr) {
+function findMarkerInFlash(u8, addrMap, markerStr) {
   const enc    = new TextEncoder();
   const needle = enc.encode(markerStr);
 
-  outer: for (let i = 0; i <= virtual.length - needle.length; i++) {
+  // Get all flash addresses covered by this UF2, sorted
+  const addrs = [...addrMap.keys()].sort((a, b) => a - b);
+
+  outer: for (let ai = 0; ai <= addrs.length - needle.length; ai++) {
+    // Check if needle matches starting at addrs[ai]
+    // Addresses must be contiguous for a match
     for (let j = 0; j < needle.length; j++) {
-      if (virtual[i + j] !== needle[j]) continue outer;
+      const addr = addrs[ai] + j;
+      if (!addrMap.has(addr)) continue outer;
+      const fileOff = addrMap.get(addr);
+      if (u8[fileOff] !== needle[j]) continue outer;
     }
-    return i;
+    return addrs[ai]; // flash address where marker starts
   }
   return -1;
 }
 
 /**
- * Patch a single placeholder field in the firmware.
+ * Patch a placeholder by flash address, writing replacement bytes
+ * to the correct file offsets via the address map.
  */
-function patchPlaceholder(u8, virtual, fileMap, field, value, marker, maxLen) {
+function patchByFlashAddress(u8, addrMap, field, value, marker, maxLen) {
   const enc        = new TextEncoder();
   const valueBytes = enc.encode(value);
 
@@ -95,8 +109,8 @@ function patchPlaceholder(u8, virtual, fileMap, field, value, marker, maxLen) {
     throw new Error(`${field} "${value}" is ${valueBytes.length} chars — max is ${maxLen - 1}.`);
   }
 
-  const virtStart = findInVirtual(virtual, marker);
-  if (virtStart === -1) {
+  const startFlashAddr = findMarkerInFlash(u8, addrMap, marker);
+  if (startFlashAddr === -1) {
     throw new Error(
       `Could not find placeholder for "${field}" in firmware.\n` +
       `Make sure you compiled the latest .ino with char array fields.`
@@ -107,11 +121,14 @@ function patchPlaceholder(u8, virtual, fileMap, field, value, marker, maxLen) {
   const replacement = new Uint8Array(maxLen); // zeroed
   replacement.set(valueBytes);
 
-  // Write replacement bytes using fileMap to handle cross-boundary writes
+  // Write each byte to its file offset via the address map
   for (let i = 0; i < maxLen; i++) {
-    const fileOffset = fileMap[virtStart + i];
-    u8[fileOffset]   = replacement[i];
-    virtual[virtStart + i] = replacement[i]; // keep virtual in sync
+    const flashAddr = startFlashAddr + i;
+    const fileOff   = addrMap.get(flashAddr);
+    if (fileOff === undefined) {
+      throw new Error(`Flash address 0x${flashAddr.toString(16)} not in UF2 map for field "${field}"`);
+    }
+    u8[fileOff] = replacement[i];
   }
 }
 
@@ -122,11 +139,11 @@ function patchFirmwareUF2(fwBuf, configObj) {
   const u8 = new Uint8Array(fwBuf.slice(0));
   validateUF2(u8, 'firmware');
 
-  const { virtual, fileMap } = buildPayloadView(u8);
+  const addrMap = buildAddressMap(u8);
 
   for (const [field, { marker, maxLen }] of Object.entries(PLACEHOLDERS)) {
     const value = String(configObj?.station_info?.[field] ?? '');
-    patchPlaceholder(u8, virtual, fileMap, field, value, marker, maxLen);
+    patchByFlashAddress(u8, addrMap, field, value, marker, maxLen);
   }
 
   return u8.buffer;
