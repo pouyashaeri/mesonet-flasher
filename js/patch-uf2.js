@@ -2,22 +2,15 @@
  * patch-uf2.js
  *
  * Patches placeholder strings directly in the firmware UF2 binary.
- * No LittleFS needed — user info is baked into the firmware itself.
+ * Handles placeholders that span across UF2 payload/header boundaries.
  *
- * The firmware has fixed-length char arrays in the Config struct:
- *   firstname[48]    → "IOTWX_FIRSTNAME_PLACEHOLDER_____"
- *   lastname[48]     → "IOTWX_LASTNAME_PLACEHOLDER______"
- *   email[64]        → "IOTWX_EMAIL_PLACEHOLDER_________________________"
- *   organization[64] → "IOTWX_ORGANIZATION_PLACEHOLDER__________________"
- *
- * We find each placeholder in the UF2 payload bytes and overwrite
- * with the user's value, null-padded to the same fixed length.
- * The array sizes in the firmware must be >= the placeholder lengths.
+ * Strategy: extract all payload bytes into a flat virtual buffer,
+ * search there, then write back using a payload-offset → file-offset map.
  */
 
 const PLACEHOLDERS = {
-  firstname:    { marker: 'IOTWX_FIRSTNAME_PLACEHOLDER_____',              maxLen: 48 },
-  lastname:     { marker: 'IOTWX_LASTNAME_PLACEHOLDER______',              maxLen: 48 },
+  firstname:    { marker: 'IOTWX_FIRSTNAME_PLACEHOLDER_____',               maxLen: 48 },
+  lastname:     { marker: 'IOTWX_LASTNAME_PLACEHOLDER______',               maxLen: 48 },
   email:        { marker: 'IOTWX_EMAIL_PLACEHOLDER_________________________', maxLen: 64 },
   organization: { marker: 'IOTWX_ORGANIZATION_PLACEHOLDER__________________', maxLen: 64 },
 };
@@ -53,102 +46,94 @@ function validateUF2(u8, label) {
 }
 
 /**
- * Find a ASCII string in the UF2 payload bytes (offset 32-287 of each block).
- * Returns the absolute byte offset in the u8 array, or -1 if not found.
+ * Build a virtual flat buffer of all payload bytes,
+ * plus a map from virtual offset → file offset.
+ * This lets us search linearly across payload regions
+ * even when the data is split by UF2 headers.
  */
-function findInPayloads(u8, searchStr) {
-  const enc     = new TextEncoder();
-  const needle  = enc.encode(searchStr);
-  const blocks  = u8.length / 512;
+function buildPayloadView(u8) {
+  const blocks   = u8.length / 512;
+  const virtual  = new Uint8Array(blocks * 256); // 256 payload bytes per block
+  const fileMap  = new Int32Array(blocks * 256); // virtual[i] lives at u8[fileMap[i]]
 
   for (let i = 0; i < blocks; i++) {
     const payloadStart = i * 512 + 32;
-    const payloadEnd   = i * 512 + 288;
-
-    // Search within this payload for the start of the needle
-    outer: for (let pos = payloadStart; pos <= payloadEnd - needle.length; pos++) {
-      for (let j = 0; j < needle.length; j++) {
-        if (u8[pos + j] !== needle[j]) continue outer;
-      }
-      return pos;
+    for (let j = 0; j < 256; j++) {
+      const virt = i * 256 + j;
+      virtual[virt]  = u8[payloadStart + j];
+      fileMap[virt]  = payloadStart + j;
     }
+  }
+  return { virtual, fileMap };
+}
+
+/**
+ * Find a marker string in the virtual payload buffer.
+ * Returns virtual offset or -1.
+ */
+function findInVirtual(virtual, markerStr) {
+  const enc    = new TextEncoder();
+  const needle = enc.encode(markerStr);
+
+  outer: for (let i = 0; i <= virtual.length - needle.length; i++) {
+    for (let j = 0; j < needle.length; j++) {
+      if (virtual[i + j] !== needle[j]) continue outer;
+    }
+    return i;
   }
   return -1;
 }
 
 /**
- * Patch a placeholder in the firmware UF2 with the user's value.
- * Writes the value null-padded to maxLen bytes into the payload.
- * Handles the case where the string spans two consecutive payload slots.
+ * Patch a single placeholder field in the firmware.
  */
-function patchPlaceholder(u8, field, value, placeholder, maxLen) {
-  const enc       = new TextEncoder();
+function patchPlaceholder(u8, virtual, fileMap, field, value, marker, maxLen) {
+  const enc        = new TextEncoder();
   const valueBytes = enc.encode(value);
 
   if (valueBytes.length >= maxLen) {
+    throw new Error(`${field} "${value}" is ${valueBytes.length} chars — max is ${maxLen - 1}.`);
+  }
+
+  const virtStart = findInVirtual(virtual, marker);
+  if (virtStart === -1) {
     throw new Error(
-      `${field} value "${value}" is ${valueBytes.length} chars — max is ${maxLen - 1}.`
+      `Could not find placeholder for "${field}" in firmware.\n` +
+      `Make sure you compiled the latest .ino with char array fields.`
     );
   }
 
-  // Build the replacement: value + null terminator + zeros to fill maxLen
-  const replacement = new Uint8Array(maxLen); // all zeros
-  replacement.set(valueBytes);                 // copy value, rest stays 0
+  // Build replacement: value + null padding to maxLen
+  const replacement = new Uint8Array(maxLen); // zeroed
+  replacement.set(valueBytes);
 
-  // Find placeholder start in payload regions
-  const startPos = findInPayloads(u8, placeholder);
-  if (startPos === -1) {
-    throw new Error(
-      `Could not find placeholder for "${field}" in firmware. ` +
-      `Make sure you compiled the latest version with char array fields.`
-    );
-  }
-
-  // Write replacement bytes — may span across payload boundaries
-  // Each payload is at bytes [i*512+32 .. i*512+287] within each UF2 block
-  let written = 0;
-  let filePos  = startPos;
-
-  while (written < maxLen) {
-    // Which UF2 block and offset within it?
-    const block      = Math.floor(filePos / 512);
-    const inBlock    = filePos % 512;
-
-    if (inBlock < 32 || inBlock >= 288) {
-      // We've wandered out of payload — skip to next payload
-      const nextPayloadStart = block * 512 + 32;
-      const nextBlock = (block + 1) * 512 + 32;
-      filePos = (inBlock < 32) ? nextPayloadStart : nextBlock;
-      continue;
-    }
-
-    u8[filePos] = replacement[written];
-    written++;
-    filePos++;
+  // Write replacement bytes using fileMap to handle cross-boundary writes
+  for (let i = 0; i < maxLen; i++) {
+    const fileOffset = fileMap[virtStart + i];
+    u8[fileOffset]   = replacement[i];
+    virtual[virtStart + i] = replacement[i]; // keep virtual in sync
   }
 }
 
 /**
- * Patch the firmware UF2 with user config values.
- * Returns patched ArrayBuffer.
+ * Patch all placeholder fields in the firmware UF2.
  */
 function patchFirmwareUF2(fwBuf, configObj) {
-  const u8 = new Uint8Array(fwBuf.slice(0)); // own copy
+  const u8 = new Uint8Array(fwBuf.slice(0));
   validateUF2(u8, 'firmware');
+
+  const { virtual, fileMap } = buildPayloadView(u8);
 
   for (const [field, { marker, maxLen }] of Object.entries(PLACEHOLDERS)) {
     const value = String(configObj?.station_info?.[field] ?? '');
-    patchPlaceholder(u8, field, value, marker, maxLen);
+    patchPlaceholder(u8, virtual, fileMap, field, value, marker, maxLen);
   }
 
   return u8.buffer;
 }
 
 /**
- * Combine firmware + config template UF2 blocks into one.
- * Renumbers seq and total in every block.
- * (Config template provides LittleFS FS partition — optional but included
- *  so a fresh board gets a valid FS even without a separate config flash.)
+ * Combine firmware + config template into one UF2, renumber all blocks.
  */
 function combineAndRenumber(fwU8, cfgU8) {
   const fwBlocks  = fwU8.length  / 512;
@@ -166,8 +151,7 @@ function combineAndRenumber(fwU8, cfgU8) {
 }
 
 /**
- * Main entry: fetch firmware, patch user config into it, combine with
- * config_template for a valid LittleFS partition, return combined UF2.
+ * Main entry: fetch firmware + config template, patch user info, combine.
  */
 export async function buildCombinedUF2(
   configObj,
@@ -186,7 +170,6 @@ export async function buildCombinedUF2(
     cfgResp.arrayBuffer(),
   ]);
 
-  // Patch user info into firmware binary
   const patchedFwBuf = patchFirmwareUF2(fwBuf, configObj);
   const patchedFwU8  = new Uint8Array(patchedFwBuf);
   const cfgU8        = new Uint8Array(cfgBuf);
