@@ -1,12 +1,12 @@
 /**
- * patch-uf2.js — flash address map approach with contiguity check fix
+ * patch-uf2.js — flash address map search, corrected markers
  */
 
 const PLACEHOLDERS = {
-  firstname:    { marker: 'IOTWXFNAME0000000000000000000000',               maxLen: 48 },
-  lastname:     { marker: 'IOTWXLNAME1111111111111111111111',               maxLen: 48 },
-  email:        { marker: 'IOTWXEMAIL22222222222222222222222222222222222222', maxLen: 64 },
-  organization: { marker: 'IOTWXORGS3333333333333333333333333333333333333333', maxLen: 64 },
+  firstname:    { marker: 'IOTWXFNAME0000000000000000000000',                maxLen: 48 },
+  lastname:     { marker: 'IOTWXLNAME1234567890abcdefghijkl',                maxLen: 48 },
+  email:        { marker: 'IOTWXEMAIL234567890abcdefghijklmnopqrstuvwxyzAB', maxLen: 64 },
+  organization: { marker: 'IOTWXORGS34567890abcdefghijklmnopqrstuvwxyzABCDE', maxLen: 64 },
 };
 
 const UF2_MAGIC0 = 0x0A324655;
@@ -32,9 +32,8 @@ function validateUF2(u8, label) {
     const b = i * 512;
     if (readU32LE(u8, b)     !== UF2_MAGIC0 ||
         readU32LE(u8, b + 4) !== UF2_MAGIC1 ||
-        readU32LE(u8, b+508) !== UF2_MAGIC2) {
+        readU32LE(u8, b+508) !== UF2_MAGIC2)
       throw new Error(`${label}: bad UF2 magic at block ${i}`);
-    }
   }
   return blocks;
 }
@@ -45,9 +44,8 @@ function buildAddressMap(u8) {
   for (let i = 0; i < blocks; i++) {
     const base       = i * 512;
     const targetAddr = readU32LE(u8, base + 12);
-    for (let j = 0; j < 256; j++) {
+    for (let j = 0; j < 256; j++)
       map.set(targetAddr + j, base + 32 + j);
-    }
   }
   return map;
 }
@@ -55,18 +53,20 @@ function buildAddressMap(u8) {
 function findMarkerInFlash(u8, addrMap, markerStr) {
   const enc    = new TextEncoder();
   const needle = enc.encode(markerStr);
+  const blocks = u8.length / 512;
 
-  // Sort all flash addresses covered by this UF2
-  const addrs = [...addrMap.keys()].sort((a, b) => a - b);
-
-  outer: for (let ai = 0; ai <= addrs.length - needle.length; ai++) {
-    // Addresses must be contiguous: addrs[ai+j] === addrs[ai] + j
-    for (let j = 0; j < needle.length; j++) {
-      if (addrs[ai + j] !== addrs[ai] + j) continue outer; // gap in addresses
-      const fileOff = addrMap.get(addrs[ai + j]);
-      if (u8[fileOff] !== needle[j]) continue outer;
+  for (let i = 0; i < blocks; i++) {
+    const base       = i * 512;
+    const targetAddr = readU32LE(u8, base + 12);
+    for (let j = 0; j < 256; j++) {
+      const startFlashAddr = targetAddr + j;
+      let match = true;
+      for (let k = 0; k < needle.length; k++) {
+        const fileOff = addrMap.get(startFlashAddr + k);
+        if (fileOff === undefined || u8[fileOff] !== needle[k]) { match = false; break; }
+      }
+      if (match) return startFlashAddr;
     }
-    return addrs[ai]; // flash address where marker starts
   }
   return -1;
 }
@@ -75,27 +75,23 @@ function patchByFlashAddress(u8, addrMap, field, value, marker, maxLen) {
   const enc        = new TextEncoder();
   const valueBytes = enc.encode(value);
 
-  if (valueBytes.length >= maxLen) {
+  if (valueBytes.length >= maxLen)
     throw new Error(`${field} "${value}" is ${valueBytes.length} chars — max is ${maxLen - 1}.`);
-  }
 
   const startFlashAddr = findMarkerInFlash(u8, addrMap, marker);
-  if (startFlashAddr === -1) {
+  if (startFlashAddr === -1)
     throw new Error(
       `Could not find placeholder for "${field}" in firmware.\n` +
       `Make sure you compiled the latest .ino with char array fields.`
     );
-  }
 
   const replacement = new Uint8Array(maxLen);
   replacement.set(valueBytes);
 
   for (let i = 0; i < maxLen; i++) {
-    const flashAddr = startFlashAddr + i;
-    const fileOff   = addrMap.get(flashAddr);
-    if (fileOff === undefined) {
-      throw new Error(`Flash address 0x${flashAddr.toString(16)} not in UF2 map for field "${field}"`);
-    }
+    const fileOff = addrMap.get(startFlashAddr + i);
+    if (fileOff === undefined)
+      throw new Error(`Flash address 0x${(startFlashAddr+i).toString(16)} not mapped for "${field}"`);
     u8[fileOff] = replacement[i];
   }
 }
@@ -146,8 +142,6 @@ export async function buildCombinedUF2(
   const patchedFwBuf = patchFirmwareUF2(fwBuf, configObj);
   const patchedFwU8  = new Uint8Array(patchedFwBuf);
   const cfgU8        = new Uint8Array(cfgBuf);
-
   validateUF2(cfgU8, 'config template');
-
   return combineAndRenumber(patchedFwU8, cfgU8);
 }
