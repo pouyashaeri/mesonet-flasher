@@ -127,10 +127,11 @@ export async function buildCombinedUF2(
   firmwareUrl = 'firmware/mesonet_rp2040.uf2',
   templateUrl = 'firmware/config_template.uf2'
 ) {
+  const bust = '?v=' + Date.now();
   const [fwResp, cfgResp] = await Promise.all([
-    fetch(firmwareUrl),
-    fetch(templateUrl),
-  ]);
+      fetch(firmwareUrl + bust),
+      fetch(templateUrl + bust),
+    ]);
   if (!fwResp.ok)  throw new Error(`Firmware not found (${fwResp.status}): ${firmwareUrl}`);
   if (!cfgResp.ok) throw new Error(`Config template not found (${cfgResp.status}): ${templateUrl}`);
 
