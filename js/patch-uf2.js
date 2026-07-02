@@ -100,10 +100,36 @@ function patchFirmwareUF2(fwBuf, configObj) {
   const u8 = new Uint8Array(fwBuf.slice(0));
   validateUF2(u8, 'firmware');
   const addrMap = buildAddressMap(u8);
+
+  // Find ALL markers first before patching anything
+  const locations = {};
   for (const [field, { marker, maxLen }] of Object.entries(PLACEHOLDERS)) {
-    const value = String(configObj?.station_info?.[field] ?? '');
-    patchByFlashAddress(u8, addrMap, field, value, marker, maxLen);
+    const addr = findMarkerInFlash(u8, addrMap, marker);
+    if (addr === -1) throw new Error(
+      `Could not find placeholder for "${field}" in firmware.\n` +
+      `Make sure you compiled the latest .ino with char array fields.`
+    );
+    locations[field] = { addr, maxLen };
+    console.log(`Found ${field} at flash 0x${addr.toString(16)}`);
   }
+
+  // Now patch all fields using saved addresses
+  for (const [field, { addr, maxLen }] of Object.entries(locations)) {
+    const value = String(configObj?.station_info?.[field] ?? '');
+    const enc = new TextEncoder();
+    const valueBytes = enc.encode(value);
+    if (valueBytes.length >= maxLen)
+      throw new Error(`${field} value too long`);
+    const replacement = new Uint8Array(maxLen);
+    replacement.set(valueBytes);
+    for (let i = 0; i < maxLen; i++) {
+      const fileOff = addrMap.get(addr + i);
+      if (fileOff === undefined)
+        throw new Error(`Flash address not mapped for "${field}"`);
+      u8[fileOff] = replacement[i];
+    }
+  }
+
   return u8.buffer;
 }
 
@@ -128,21 +154,11 @@ export async function buildCombinedUF2(
   templateUrl = 'firmware/config_template.uf2'
 ) {
   const bust = '?v=' + Date.now();
-  const [fwResp, cfgResp] = await Promise.all([
-      fetch(firmwareUrl + bust),
-      fetch(templateUrl + bust),
-    ]);
-  if (!fwResp.ok)  throw new Error(`Firmware not found (${fwResp.status}): ${firmwareUrl}`);
-  if (!cfgResp.ok) throw new Error(`Config template not found (${cfgResp.status}): ${templateUrl}`);
+  const fwResp = await fetch(firmwareUrl + bust);
+  if (!fwResp.ok) throw new Error(`Firmware not found (${fwResp.status}): ${firmwareUrl}`);
+  const fwBuf = await fwResp.arrayBuffer();
 
-  const [fwBuf, cfgBuf] = await Promise.all([
-    fwResp.arrayBuffer(),
-    cfgResp.arrayBuffer(),
-  ]);
-
+  // Patch user config directly into firmware — no LittleFS needed
   const patchedFwBuf = patchFirmwareUF2(fwBuf, configObj);
-  const patchedFwU8  = new Uint8Array(patchedFwBuf);
-  const cfgU8        = new Uint8Array(cfgBuf);
-  validateUF2(cfgU8, 'config template');
-  return combineAndRenumber(patchedFwU8, cfgU8);
+  return patchedFwBuf;
 }
