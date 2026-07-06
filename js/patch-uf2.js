@@ -78,6 +78,10 @@ function patchByFlashAddress(u8, addrMap, field, value, marker, maxLen) {
   if (valueBytes.length >= maxLen)
     throw new Error(`${field} "${value}" is ${valueBytes.length} chars — max is ${maxLen - 1}.`);
 
+  // Only write value + null terminator, don't zero out the rest
+  // Zeroing past the null terminator can corrupt adjacent fields in flash
+  const writeLen = valueBytes.length + 1; // value + null terminator only
+
   const startFlashAddr = findMarkerInFlash(u8, addrMap, marker);
   if (startFlashAddr === -1)
     throw new Error(
@@ -85,14 +89,11 @@ function patchByFlashAddress(u8, addrMap, field, value, marker, maxLen) {
       `Make sure you compiled the latest .ino with char array fields.`
     );
 
-  const replacement = new Uint8Array(maxLen);
-  replacement.set(valueBytes);
-
-  for (let i = 0; i < maxLen; i++) {
+  for (let i = 0; i < writeLen; i++) {
     const fileOff = addrMap.get(startFlashAddr + i);
     if (fileOff === undefined)
-      throw new Error(`Flash address 0x${(startFlashAddr+i).toString(16)} not mapped for "${field}"`);
-    u8[fileOff] = replacement[i];
+      throw new Error(`Flash address not mapped for "${field}"`);
+    u8[fileOff] = i < valueBytes.length ? valueBytes[i] : 0; // null terminator
   }
 }
 
@@ -120,13 +121,14 @@ function patchFirmwareUF2(fwBuf, configObj) {
     const valueBytes = enc.encode(value);
     if (valueBytes.length >= maxLen)
       throw new Error(`${field} value too long`);
-    const replacement = new Uint8Array(maxLen);
-    replacement.set(valueBytes);
-    for (let i = 0; i < maxLen; i++) {
+    
+    const writeLen = valueBytes.length + 1; // value + null terminator only
+    
+    for (let i = 0; i < writeLen; i++) {
       const fileOff = addrMap.get(addr + i);
       if (fileOff === undefined)
         throw new Error(`Flash address not mapped for "${field}"`);
-      u8[fileOff] = replacement[i];
+      u8[fileOff] = i < valueBytes.length ? valueBytes[i] : 0;
     }
   }
 
@@ -157,8 +159,5 @@ export async function buildCombinedUF2(
   const fwResp = await fetch(firmwareUrl + bust);
   if (!fwResp.ok) throw new Error(`Firmware not found (${fwResp.status}): ${firmwareUrl}`);
   const fwBuf = await fwResp.arrayBuffer();
-
-  // Patch user config directly into firmware — no LittleFS needed
-  const patchedFwBuf = patchFirmwareUF2(fwBuf, configObj);
-  return patchedFwBuf;
+  return patchFirmwareUF2(fwBuf, configObj);
 }
