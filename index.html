@@ -1,476 +1,410 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-  <meta charset="UTF-8"/>
-  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
-  <title>IoTwx · Flash Firmware</title>
-  <script type="module" src="https://unpkg.com/esp-web-tools@10/dist/web/install-button.js?module"></script>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>IoTwx Mesonet — Station Setup</title>
   <style>
-    @import url('https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;600&family=Inter:wght@400;500;600&display=swap');
-
-    :root {
-      --ink:     #0d1117;
-      --ink2:    #4a5568;
-      --rule:    #e2e8f0;
-      --sky:     #0ea5e9;
-      --sky-dim: #0284c7;
-      --green:   #22c55e;
-      --amber:   #f59e0b;
-      --red:     #ef4444;
-      --surface: #ffffff;
-      --bg:      #f0f4f8;
-      --mono:    'IBM Plex Mono', monospace;
-      --sans:    'Inter', system-ui, sans-serif;
-      --r:       8px;
-    }
-
     *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
 
+    :root {
+      --bg:        #0d1117;
+      --surface:   #161b22;
+      --border:    #30363d;
+      --accent:    #58a6ff;
+      --accent2:   #3fb950;
+      --text:      #e6edf3;
+      --muted:     #8b949e;
+      --danger:    #f85149;
+      --radius:    8px;
+      --font-mono: 'JetBrains Mono', 'Fira Code', 'Cascadia Code', monospace;
+      --font-sans: 'Inter', system-ui, sans-serif;
+    }
+
     body {
-      font-family: var(--sans);
       background: var(--bg);
-      color: var(--ink);
+      color: var(--text);
+      font-family: var(--font-sans);
       min-height: 100vh;
-      padding: 2rem 1rem 4rem;
+      padding: 0;
     }
 
-    .nav {
-      display: flex;
-      align-items: center;
-      justify-content: space-between;
-      max-width: 680px;
-      margin: 0 auto 2.5rem;
-    }
-    .nav-brand {
-      font-family: var(--mono);
-      font-size: 0.85rem;
-      font-weight: 600;
-      color: var(--sky);
-      letter-spacing: 0.04em;
-      text-decoration: none;
-    }
-    .nav-steps {
-      display: flex;
-      align-items: center;
-      gap: 0.4rem;
-      font-size: 0.78rem;
-      font-family: var(--mono);
-    }
-    .step { color: var(--ink2); text-decoration: none; }
-    .step:hover { color: var(--sky); }
-    .step.active { color: var(--sky); font-weight: 600; }
-    .step-sep { color: var(--rule); }
-
-    .page-header {
-      max-width: 680px;
-      margin: 0 auto 2rem;
-    }
-    .eyebrow {
-      font-family: var(--mono);
-      font-size: 0.72rem;
-      letter-spacing: 0.1em;
-      text-transform: uppercase;
-      color: var(--sky);
-      margin-bottom: 0.5rem;
-    }
-    .page-header h1 { font-size: 1.7rem; font-weight: 600; line-height: 1.2; margin-bottom: 0.5rem; }
-    .page-header p  { color: var(--ink2); font-size: 0.92rem; line-height: 1.6; }
-
-    .tabs {
-      max-width: 680px;
-      margin: 0 auto 1.5rem;
-      display: flex;
-      gap: 0.5rem;
-      border-bottom: 1px solid var(--rule);
-    }
-    .tab {
-      padding: 0.6rem 1.2rem;
-      font-size: 0.88rem;
-      font-weight: 600;
-      cursor: pointer;
-      border: none;
-      background: none;
-      color: var(--ink2);
-      border-bottom: 2px solid transparent;
-      margin-bottom: -1px;
-      font-family: var(--sans);
-      transition: color 0.15s, border-color 0.15s;
-    }
-    .tab:hover { color: var(--sky); }
-    .tab.active { color: var(--sky); border-bottom-color: var(--sky); }
-
-    .panel { display: none; max-width: 680px; margin: 0 auto; }
-    .panel.active { display: block; }
-
-    .info-box {
-      border-radius: var(--r);
-      padding: 0.85rem 1.1rem;
-      font-size: 0.83rem;
-      line-height: 1.6;
-      margin-bottom: 1.2rem;
-      border: 1px solid;
-    }
-    .info-box.amber  { background: #fffbeb; border-color: #fde68a; color: #92400e; }
-    .info-box.amber strong { color: #78350f; }
-    .info-box.green  { background: #f0fdf4; border-color: #bbf7d0; color: #14532d; }
-    .info-box.blue   { background: #eff6ff; border-color: #bfdbfe; color: #1e40af; }
-
-    .steps-list { display: flex; flex-direction: column; gap: 1rem; margin-bottom: 1.5rem; }
-
-    .step-item {
+    /* ── Header ── */
+    header {
       background: var(--surface);
-      border: 1px solid var(--rule);
-      border-radius: var(--r);
-      padding: 1.2rem 1.4rem;
+      border-bottom: 1px solid var(--border);
+      padding: 16px 32px;
       display: flex;
-      gap: 1rem;
-      align-items: flex-start;
+      align-items: center;
+      gap: 12px;
     }
-    .step-item.done        { border-color: #bbf7d0; background: #f0fdf4; }
-    .step-item.active-step { border-color: var(--sky); box-shadow: 0 0 0 3px rgba(14,165,233,0.1); }
+    .logo {
+      font-family: var(--font-mono);
+      font-size: 13px;
+      color: var(--accent);
+      letter-spacing: 0.05em;
+    }
+    .logo span { color: var(--accent2); }
+    header h1 {
+      font-size: 15px;
+      font-weight: 600;
+      color: var(--text);
+    }
 
+    /* ── Step indicator ── */
+    .steps {
+      display: flex;
+      align-items: center;
+      gap: 0;
+      padding: 20px 32px;
+      border-bottom: 1px solid var(--border);
+      background: var(--surface);
+    }
+    .step {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      font-size: 13px;
+      color: var(--muted);
+    }
+    .step.active { color: var(--text); }
+    .step.done { color: var(--accent2); }
     .step-num {
-      width: 28px; height: 28px;
+      width: 24px; height: 24px;
       border-radius: 50%;
-      background: var(--bg);
-      border: 2px solid var(--rule);
-      display: grid; place-items: center;
-      font-family: var(--mono);
-      font-size: 0.78rem;
-      font-weight: 600;
-      flex-shrink: 0;
-      color: var(--ink2);
+      border: 1.5px solid var(--border);
+      display: flex; align-items: center; justify-content: center;
+      font-size: 11px; font-weight: 600;
+      font-family: var(--font-mono);
     }
-    .step-item.done .step-num        { background: var(--green); border-color: var(--green); color: #fff; }
-    .step-item.active-step .step-num { background: var(--sky);   border-color: var(--sky);   color: #fff; }
+    .step.active .step-num { border-color: var(--accent); color: var(--accent); background: rgba(88,166,255,0.1); }
+    .step.done .step-num { border-color: var(--accent2); color: var(--accent2); background: rgba(63,185,80,0.1); }
+    .step-divider { flex: 1; height: 1px; background: var(--border); margin: 0 16px; max-width: 48px; }
 
-    .step-content { flex: 1; }
-    .step-content h3 { font-size: 0.92rem; font-weight: 600; margin-bottom: 0.25rem; }
-    .step-content p  { font-size: 0.82rem; color: var(--ink2); line-height: 1.5; }
+    /* ── Main layout ── */
+    main {
+      max-width: 720px;
+      margin: 0 auto;
+      padding: 40px 24px 80px;
+    }
 
-    /* Inline method toggle */
-    .method-tabs {
+    .page-title {
+      font-size: 22px;
+      font-weight: 700;
+      margin-bottom: 6px;
+    }
+    .page-sub {
+      font-size: 14px;
+      color: var(--muted);
+      margin-bottom: 36px;
+      line-height: 1.5;
+    }
+
+    /* ── Section ── */
+    .section {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      margin-bottom: 20px;
+      overflow: hidden;
+    }
+    .section-header {
+      padding: 14px 20px;
+      border-bottom: 1px solid var(--border);
       display: flex;
-      gap: 0.4rem;
-      margin: 0.75rem 0 0.6rem;
+      align-items: center;
+      gap: 10px;
     }
-    .method-tab {
-      padding: 0.35rem 0.8rem;
-      border-radius: 20px;
-      font-size: 0.78rem;
-      font-weight: 600;
-      cursor: pointer;
-      border: 1px solid var(--rule);
+    .section-icon { font-size: 16px; }
+    .section-title { font-size: 13px; font-weight: 600; color: var(--text); }
+    .section-desc { font-size: 12px; color: var(--muted); margin-left: auto; }
+    .section-body { padding: 20px; display: grid; gap: 16px; }
+
+    /* ── Field ── */
+    .field { display: flex; flex-direction: column; gap: 6px; }
+    .field-row { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; }
+    .field-row-3 { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 16px; }
+
+    label {
+      font-size: 12px;
+      font-weight: 500;
+      color: var(--muted);
+      letter-spacing: 0.02em;
+      text-transform: uppercase;
+    }
+    input[type="text"],
+    input[type="email"],
+    input[type="number"] {
       background: var(--bg);
-      color: var(--ink2);
-      font-family: var(--sans);
-      transition: all 0.15s;
-    }
-    .method-tab.active { background: var(--sky); border-color: var(--sky); color: #fff; }
-    .method-panel { display: none; }
-    .method-panel.active { display: block; }
-
-    .upload-zone {
-      border: 2px dashed var(--rule);
-      border-radius: var(--r);
-      padding: 1rem;
-      text-align: center;
-      cursor: pointer;
-      transition: border-color 0.15s, background 0.15s;
-      margin-top: 0.6rem;
-    }
-    .upload-zone:hover, .upload-zone.drag-over {
-      border-color: var(--sky);
-      background: #eff6ff;
-    }
-    .upload-zone p { font-size: 0.82rem; color: var(--ink2); margin-top: 0.25rem; }
-    .upload-zone .fname { font-family: var(--mono); color: var(--sky); font-size: 0.8rem; margin-top: 0.3rem; }
-    .upload-zone input[type="file"] { display: none; }
-
-    .btn {
-      display: inline-flex;
-      align-items: center;
-      gap: 0.4rem;
-      padding: 0.6rem 1.2rem;
-      border-radius: var(--r);
-      font-family: var(--sans);
-      font-size: 0.88rem;
-      font-weight: 600;
-      cursor: pointer;
-      border: none;
-      transition: opacity 0.15s, transform 0.1s, background 0.15s;
-      text-decoration: none;
-    }
-    .btn:active { transform: scale(0.97); }
-    .btn-sky   { background: var(--sky);   color: #fff; }
-    .btn-sky:hover   { background: var(--sky-dim); }
-    .btn-green { background: var(--green); color: #fff; }
-    .btn-green:hover { background: #16a34a; }
-    .btn-ghost { background: var(--surface); color: var(--ink); border: 1px solid var(--rule); }
-    .btn-ghost:hover { border-color: var(--sky); color: var(--sky); }
-    .btn:disabled { opacity: 0.4; cursor: not-allowed; transform: none; }
-
-    .action-row {
-      display: flex;
-      gap: 0.6rem;
-      align-items: center;
-      margin-top: 0.75rem;
-      flex-wrap: wrap;
-    }
-
-    .progress-wrap { margin-top: 0.75rem; display: none; }
-    .progress-wrap.visible { display: block; }
-    .progress-bar  { height: 6px; background: var(--rule); border-radius: 3px; overflow: hidden; }
-    .progress-fill { height: 100%; background: var(--green); width: 0%; transition: width 0.15s; border-radius: 3px; }
-    .progress-label { font-size: 0.72rem; color: var(--ink2); margin-top: 0.3rem; font-family: var(--mono); }
-
-    .status {
-      margin-top: 0.6rem;
-      font-size: 0.82rem;
-      padding: 0.5rem 0.8rem;
+      border: 1px solid var(--border);
       border-radius: 6px;
-      display: none;
-      font-family: var(--mono);
-      line-height: 1.4;
+      color: var(--text);
+      font-family: var(--font-sans);
+      font-size: 14px;
+      padding: 9px 12px;
+      width: 100%;
+      transition: border-color 0.15s;
+      outline: none;
     }
-    .status.visible { display: block; }
-    .status.ok   { background: #f0fdf4; color: #166534; border: 1px solid #bbf7d0; }
-    .status.err  { background: #fef2f2; color: #991b1b; border: 1px solid #fecaca; }
-    .status.info { background: #eff6ff; color: #1e40af; border: 1px solid #bfdbfe; }
+    input:focus { border-color: var(--accent); }
+    input::placeholder { color: var(--muted); }
+    .field-hint { font-size: 11px; color: var(--muted); }
 
-    @media (max-width: 480px) {
-      .action-row { flex-direction: column; align-items: stretch; }
-      .btn { justify-content: center; }
+    /* ── Collapsible advanced ── */
+    .advanced-toggle {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      background: none;
+      border: none;
+      color: var(--muted);
+      font-size: 13px;
+      cursor: pointer;
+      padding: 4px 0;
+      font-family: var(--font-sans);
+      margin-top: 4px;
     }
+    .advanced-toggle:hover { color: var(--text); }
+    .toggle-arrow { transition: transform 0.2s; font-size: 10px; }
+    .toggle-arrow.open { transform: rotate(90deg); }
+    .advanced-section { display: none; margin-top: 8px; }
+    .advanced-section.open { display: block; }
+
+    /* ── Submit ── */
+    .submit-area {
+      margin-top: 32px;
+      display: flex;
+      justify-content: flex-end;
+    }
+    .btn-primary {
+      background: var(--accent);
+      color: #0d1117;
+      border: none;
+      border-radius: 6px;
+      font-size: 14px;
+      font-weight: 600;
+      padding: 11px 28px;
+      cursor: pointer;
+      font-family: var(--font-sans);
+      transition: opacity 0.15s;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+    .btn-primary:hover { opacity: 0.88; }
+
+    /* ── Required asterisk ── */
+    .req { color: var(--danger); margin-left: 2px; }
   </style>
 </head>
 <body>
 
-<nav class="nav">
-  <a class="nav-brand" href="index.html">⛅ IoTwx Flasher</a>
-  <div class="nav-steps">
-    <a class="step" href="config.html">01 Configure</a>
-    <span class="step-sep">›</span>
-    <span class="step active">02 Flash</span>
+<header>
+  <div class="logo">IoTwx<span>/</span>mesonet</div>
+  <div style="width:1px;height:16px;background:var(--border);margin:0 4px;"></div>
+  <h1>Station Setup</h1>
+</header>
+
+<div class="steps">
+  <div class="step active">
+    <div class="step-num">1</div>
+    Configure
   </div>
-</nav>
-
-<div class="page-header">
-  <div class="eyebrow">Step 2 of 2 — Flash</div>
-  <h1>Flash your device</h1>
-  <p>Connect your board and follow the steps below. Chrome or Edge required — Web Serial and the File System Access API are not supported in Firefox.</p>
+  <div class="step-divider"></div>
+  <div class="step">
+    <div class="step-num">2</div>
+    Flash
+  </div>
 </div>
 
-<div class="tabs">
-  <button class="tab active" onclick="switchTab('rp2040')">RP2040 Feather</button>
-  <button class="tab"        onclick="switchTab('esp')">ESP32 Atom Lite</button>
-</div>
+<main>
+  <div class="page-title">Configure your station</div>
+  <p class="page-sub">Fill in your details and location. Your config is baked directly into the firmware — no app or server needed after flashing.</p>
 
-<!-- ══════════════ RP2040 PANEL ══════════════ -->
-<div class="panel active" id="panel-rp2040">
+  <form id="configForm" novalidate>
 
-  <div class="steps-list">
-
-    <!-- ── Step 1: Enter BOOTSEL ── -->
-    <div class="step-item active-step" id="s1">
-      <div class="step-num">1</div>
-      <div class="step-content">
-        <h3>Enter BOOTSEL mode</h3>
-        <p>Hold the <strong>BOOTSEL</strong> button on your Feather, plug in the USB cable, then release. Your board mounts as a removable drive named <strong>RPI-RP2</strong>. Click below when it appears.</p>
-        <div class="action-row">
-          <button class="btn btn-sky" onclick="checkBootsel()">✓ Board is in BOOTSEL mode</button>
-        </div>
-        <div class="status" id="s1-status"></div>
+    <!-- Station Identity -->
+    <div class="section">
+      <div class="section-header">
+        <span class="section-icon">👤</span>
+        <span class="section-title">Station Owner</span>
+        <span class="section-desc">Who operates this station</span>
       </div>
-    </div>
-
-    <!-- ── Step 2: Download combined UF2 ── -->
-    <div class="step-item" id="s2">
-      <div class="step-num">2</div>
-      <div class="step-content">
-        <h3>Download your personalised firmware</h3>
-        <p>This builds a single <code>.uf2</code> containing <strong>both the firmware and your config</strong> — one file, one drag, done. Your config is baked in from Step 1.</p>
-
-        <div class="info-box green" id="cfg-ready-hint" style="display:none; margin-top:0.75rem; font-size:0.82rem">
-          <strong>✓ Config loaded</strong> — your station details from Step 1 are ready to embed.
+      <div class="section-body">
+        <div class="field-row">
+          <div class="field">
+            <label>First name <span class="req">*</span></label>
+            <input type="text" id="firstname" placeholder="e.g. Jane" required maxlength="20" />
+          </div>
+          <div class="field">
+            <label>Last name <span class="req">*</span></label>
+            <input type="text" id="lastname" placeholder="e.g. Smith" required maxlength="20" />
+          </div>
         </div>
-        <div class="info-box amber" id="cfg-missing-hint" style="display:none; margin-top:0.75rem; font-size:0.82rem">
-          <strong>No config found.</strong> <a href="config.html" style="color:#92400e; font-weight:600;">Go back to Step 1</a> to fill in your details first.
+        <div class="field">
+          <label>Email <span class="req">*</span></label>
+          <input type="email" id="email" placeholder="your@email.com" required maxlength="48" />
         </div>
-
-        <div class="action-row" style="margin-top:0.85rem">
-          <button class="btn btn-sky" id="btn-dl-combined" onclick="downloadCombined()">⬇ Build &amp; Download mesonet.uf2</button>
-        </div>
-
-        <div class="progress-wrap" id="build-progress">
-          <div class="progress-bar"><div class="progress-fill" id="build-fill" style="width:0%"></div></div>
-          <div class="progress-label" id="build-label">Fetching files…</div>
-        </div>
-        <div class="status" id="s2-status"></div>
-
-        <div class="info-box amber" style="margin-top:0.85rem; font-size:0.8rem">
-          <strong>How to flash:</strong> Hold <strong>BOOTSEL</strong> + plug in USB → wait for <strong>RPI-RP2</strong> to appear in File Explorer → drag <code>mesonet.uf2</code> onto it → drive disappears → board reboots with firmware + config. Done.
-        </div>
-        <div class="action-row" style="margin-top:0.6rem">
-          <button class="btn btn-green" id="btn-done" disabled onclick="markDone('s2')">✓ Done — board is flashed</button>
-        </div>
-      </div>
-    </div>
-    </div>
-
-  </div>
-</div>
-
-<!-- ══════════════ ESP PANEL ══════════════ -->
-<div class="panel" id="panel-esp">
-  <div class="info-box blue">
-    <strong>ESP32 Atom Lite</strong> — uses Web Serial (ESP flashing protocol). No BOOTSEL needed; just plug in and click Flash.
-  </div>
-
-  <div class="steps-list">
-    <div class="step-item active-step">
-      <div class="step-num">1</div>
-      <div class="step-content">
-        <h3>Flash pre-built firmware</h3>
-        <p>Plug in your Atom Lite and click Flash. Chrome/Edge will prompt you to select the serial port.</p>
-        <div class="action-row" style="margin-top:0.75rem">
-          <esp-web-install-button manifest="manifest_esp.json">
-            <button slot="activate" class="btn btn-sky">⚡ Connect &amp; Flash ESP</button>
-          </esp-web-install-button>
+        <div class="field">
+          <label>Organization</label>
+          <input type="text" id="organization" placeholder="e.g. your University / Lab" maxlength="20" />
         </div>
       </div>
     </div>
 
-    <div class="step-item">
-      <div class="step-num">2</div>
-      <div class="step-content">
-        <h3>Custom .bin file</h3>
-        <p>Need to flash a different binary? Use Espressif's official tool which supports custom offsets and multi-part images.</p>
-        <div class="action-row" style="margin-top:0.75rem">
-          <a class="btn btn-ghost" href="https://espressif.github.io/esptool-js/" target="_blank">Open esptool.js ↗</a>
+    <!-- Location -->
+    <div class="section">
+      <div class="section-header">
+        <span class="section-icon">📍</span>
+        <span class="section-title">Station Location</span>
+        <span class="section-desc">Where is this station deployed</span>
+      </div>
+      <div class="section-body">
+        <div class="field-row-3">
+          <div class="field">
+            <label>Latitude</label>
+            <input type="number" id="latitude" placeholder="e.g. 39.9784" step="0.0001" min="-90" max="90" />
+          </div>
+          <div class="field">
+            <label>Longitude</label>
+            <input type="number" id="longitude" placeholder="e.g. -105.2749" step="0.0001" min="-180" max="180" />
+          </div>
+          <div class="field">
+            <label>Altitude (m)</label>
+            <input type="number" id="altitude" placeholder="e.g. 1650" step="1" />
+          </div>
+        </div>
+        <div class="field">
+          <label>Device</label>
+          <input type="text" id="device" value="adafruit RP2040 RFM95 LoRa" readonly style="opacity:0.5;cursor:not-allowed;" />
         </div>
       </div>
     </div>
-  </div>
-</div>
 
-<script type="module">
-  // ── Config-ready hint from page 1 ────────────────────────
-  if (sessionStorage.getItem('configReady')) {
-    document.getElementById('config-hint').style.display = 'block';
-  }
+    <!-- Advanced -->
+    <div class="section">
+      <div class="section-header">
+        <span class="section-icon">⚙️</span>
+        <span class="section-title">Advanced</span>
+        <span class="section-desc">Timing &amp; radio — defaults work for most setups</span>
+      </div>
+      <div class="section-body">
+        <button type="button" class="advanced-toggle" id="advToggle">
+          <span class="toggle-arrow" id="advArrow">▶</span>
+          Show advanced settings
+        </button>
+        <div class="advanced-section" id="advSection">
+          <div style="display:grid;gap:16px;margin-top:8px;">
+            <div class="field-row">
+              <div class="field">
+                <label>Sensor transmit delay (ms)</label>
+                <input type="number" id="sensor_transmit_delay" value="60000" min="5000" />
+                <span class="field-hint">How often sensors publish</span>
+              </div>
+              <div class="field">
+                <label>Station info interval (ms)</label>
+                <input type="number" id="station_info_interval" value="86400000" min="60000" />
+                <span class="field-hint">Default 24 h</span>
+              </div>
+            </div>
+            <div class="field-row">
+              <div class="field">
+                <label>Pong timeout (ms)</label>
+                <input type="number" id="pong_timeout" value="5000" min="1000" />
+              </div>
+              <div class="field">
+                <label>Connect timeout (ms)</label>
+                <input type="number" id="connect_timeout" value="900000" min="60000" />
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
 
-  // ── Tab switching ─────────────────────────────────────────
-  window.switchTab = (tab) => {
-    document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
-    document.querySelectorAll('.panel').forEach(p => p.classList.remove('active'));
-    const idx = tab === 'rp2040' ? 0 : 1;
-    document.querySelectorAll('.tab')[idx].classList.add('active');
-    document.getElementById(`panel-${tab}`).classList.add('active');
-  };
-  if (location.hash === '#esp') switchTab('esp');
+    <div class="submit-area">
+      <button type="submit" class="btn-primary">
+        Save &amp; go to Flash
+        <span>→</span>
+      </button>
+    </div>
 
-  // ── Method tabs (pre-built / custom) ─────────────────────
-  window.setMethod = (id, btn) => {
-    document.querySelectorAll('.method-tab').forEach(t => t.classList.remove('active'));
-    document.querySelectorAll('.method-panel').forEach(p => p.classList.remove('active'));
-    btn.classList.add('active');
-    document.getElementById(`mp-${id}`).classList.add('active');
-  };
+  </form>
+</main>
 
-  // ── Status / progress helpers ─────────────────────────────
-  function setStatus(id, msg, type = 'info') {
-    const el = document.getElementById(id);
-    el.textContent = msg;
-    el.className = `status visible ${type}`;
-  }
-  function setProgress(fillId, labelId, wrapId, done, total) {
-    const pct = total > 0 ? Math.round((done/total)*100) : 100;
-    document.getElementById(fillId).style.width = pct + '%';
-    document.getElementById(labelId).textContent = total > 1
-      ? `${done} / ${total} blocks (${pct}%)`
-      : (done === total ? 'Complete' : 'Writing…');
-    document.getElementById(wrapId).classList.add('visible');
-  }
-  function markDone(stepId) {
-    const el = document.getElementById(stepId);
-    el.classList.remove('active-step');
-    el.classList.add('done');
-    el.querySelector('.step-num').textContent = '✓';
-  }
-  function activateStep(stepId) {
-    document.getElementById(stepId).classList.add('active-step');
-  }
+<script>
+  // Toggle advanced
+  const advToggle = document.getElementById('advToggle');
+  const advArrow  = document.getElementById('advArrow');
+  const advSection = document.getElementById('advSection');
+  advToggle.addEventListener('click', () => {
+    advSection.classList.toggle('open');
+    advArrow.classList.toggle('open');
+    advToggle.childNodes[2].textContent = advSection.classList.contains('open')
+      ? ' Hide advanced settings' : ' Show advanced settings';
+  });
 
-  // ── Drag-drop helpers ─────────────────────────────────────
-  window.zoneDrag   = (e, id) => { e.preventDefault(); document.getElementById(id).classList.add('drag-over'); };
-  window.zoneLeave  = (id)    => { document.getElementById(id).classList.remove('drag-over'); };
-  window.zoneDrop   = (e, id, inputId, handler) => {
+  // Pre-fill from sessionStorage if returning
+  const saved = JSON.parse(sessionStorage.getItem('iotwx_config') || '{}');
+  const si = saved.station_info || {};
+  const ra = saved.radio || {};
+  if (si.firstname) document.getElementById('firstname').value = si.firstname;
+  if (si.lastname)  document.getElementById('lastname').value  = si.lastname;
+  if (si.email)     document.getElementById('email').value     = si.email;
+  if (si.organization) document.getElementById('organization').value = si.organization;
+  if (si.latitude)  document.getElementById('latitude').value  = si.latitude;
+  if (si.longitude) document.getElementById('longitude').value = si.longitude;
+  if (si.altitude)  document.getElementById('altitude').value  = si.altitude;
+  if (si.sensor_transmit_delay) document.getElementById('sensor_transmit_delay').value = si.sensor_transmit_delay;
+  if (si.station_info_interval) document.getElementById('station_info_interval').value = si.station_info_interval;
+  if (ra.pong_timeout)    document.getElementById('pong_timeout').value    = ra.pong_timeout;
+  if (ra.connect_timeout) document.getElementById('connect_timeout').value = ra.connect_timeout;
+
+  // Submit
+  document.getElementById('configForm').addEventListener('submit', e => {
     e.preventDefault();
-    document.getElementById(id).classList.remove('drag-over');
-    const file = e.dataTransfer.files[0];
-    if (file) handler(file);
-  };
-
-  // ── Step 1: Confirm BOOTSEL ──────────────────────────────
-  window.checkBootsel = () => {
-    setStatus('s1-status', '✓ Good — RPI-RP2 drive is visible. Proceed to Step 2.', 'ok');
-    markDone('s1');
-    activateStep('s2');
-  };
-
-  // ── Step 3: Build config.uf2 in browser + download ───────
-  import { buildCombinedUF2 } from './js/patch-uf2.js?v=10';
-
-  // ── Show config status hint ──────────────────────────────
-  const _storedConfig = sessionStorage.getItem('iotwx_config');
-  if (_storedConfig) {
-    document.getElementById('cfg-ready-hint').style.display = 'block';
-  } else {
-    document.getElementById('cfg-missing-hint').style.display = 'block';
-  }
-
-  // ── Build + download combined UF2 ────────────────────────
-  window.downloadCombined = async () => {
-    const jsonStr = sessionStorage.getItem('iotwx_config');
-    if (!jsonStr) {
-      setStatus('s2-status', 'No config — go back to Step 1 first.', 'err');
+    const firstname = document.getElementById('firstname').value.trim();
+    const lastname  = document.getElementById('lastname').value.trim();
+    const email     = document.getElementById('email').value.trim();
+    if (!firstname || !lastname || !email) {
+      alert('Please fill in First name, Last name, and Email.');
       return;
     }
-    const prog  = document.getElementById('build-progress');
-    const fill  = document.getElementById('build-fill');
-    const label = document.getElementById('build-label');
-    prog.classList.add('visible');
-
-    try {
-      label.textContent = 'Fetching firmware…';
-      fill.style.width  = '20%';
-      const configObj = JSON.parse(jsonStr);
-
-      label.textContent = 'Patching config into firmware…';
-      fill.style.width  = '60%';
-      const buf = await buildCombinedUF2(configObj);
-
-      label.textContent = 'Preparing download…';
-      fill.style.width  = '90%';
-      const blob = new Blob([buf], { type: 'application/octet-stream' });
-      const url  = URL.createObjectURL(blob);
-      const a    = document.createElement('a');
-      a.href     = url;
-      a.download = 'mesonet.uf2';
-      a.click();
-      URL.revokeObjectURL(url);
-
-      fill.style.width  = '100%';
-      label.textContent = 'Done!';
-      setStatus('s2-status', '✓ mesonet.uf2 downloaded — drag it onto RPI-RP2.', 'ok');
-      document.getElementById('btn-done').disabled = false;
-    } catch (e) {
-      setStatus('s2-status', '✗ ' + e.message, 'err');
-      prog.classList.remove('visible');
-    }
-  };
+    const config = {
+      radio: {
+        overload_threshold: 0.85,
+        station_relay_midpoint: 10,
+        station_relay_steepness: 0.2,
+        station_sensor_midpoint: 5,
+        station_sensor_steepness: 0.5,
+        station_relay_weight: 0.7,
+        station_sensor_weight: 0.3,
+        score_rssi_weight: 0.35,
+        score_load_weight: 0.35,
+        score_type_weight: 0.2,
+        score_relay_weight: 0.1,
+        score_relay_decay: 1.0,
+        pong_timeout:    parseInt(document.getElementById('pong_timeout').value)    || 5000,
+        connect_timeout: parseInt(document.getElementById('connect_timeout').value) || 900000,
+      },
+      station_info: {
+        firstname,
+        lastname,
+        email,
+        organization: document.getElementById('organization').value.trim(),
+        device:       'adafruit RP2040 RFM95 LoRa',
+        latitude:     parseFloat(document.getElementById('latitude').value)  || 0.0,
+        longitude:    parseFloat(document.getElementById('longitude').value) || 0.0,
+        altitude:     parseFloat(document.getElementById('altitude').value)  || 0.0,
+        station_info_interval:  parseInt(document.getElementById('station_info_interval').value)  || 86400000,
+        fixed_deployment: false,
+        gps_fixed_interval: 43200000,
+        sensor_transmit_delay: parseInt(document.getElementById('sensor_transmit_delay').value) || 60000,
+      }
+    };
+    sessionStorage.setItem('iotwx_config', JSON.stringify(config));
+    window.location.href = 'flash.html';
+  });
 </script>
-
 </body>
 </html>
