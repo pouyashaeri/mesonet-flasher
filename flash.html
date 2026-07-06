@@ -349,8 +349,10 @@
           <option value="115200" selected>115200</option>
           <option value="230400">230400</option>
         </select>
+        <button class="btn-secondary" id="autoScrollBtn" title="Toggle auto-scroll" style="padding:5px 10px;font-size:11px;border-color:var(--accent2);color:var(--accent2);">⬇ Auto</button>
+        <button class="btn-secondary" id="copySerial" title="Copy all output" style="padding:5px 10px;font-size:11px;">⎘ Copy</button>
+        <button class="btn-secondary" id="clearSerial" style="padding:5px 10px;font-size:11px;">✕ Clear</button>
         <button class="btn-secondary" id="connectSerial">Connect</button>
-        <button class="btn-secondary" id="clearSerial">Clear</button>
       </div>
     </div>
     <div class="serial-output" id="serialOutput">
@@ -446,47 +448,86 @@
 </script>
 
 <script>
-  let serialPort = null;
+  let serialPort   = null;
   let serialReader = null;
   let isConnecting = false;
+  let autoScroll   = true;
 
-  document.getElementById('connectSerial').addEventListener('click', async () => {
-    const btn = document.getElementById('connectSerial');
-    const output = document.getElementById('serialOutput');
+  const output       = document.getElementById('serialOutput');
+  const connectBtn   = document.getElementById('connectSerial');
+  const autoScrollBtn = document.getElementById('autoScrollBtn');
+  const copyBtn      = document.getElementById('copySerial');
+  const clearBtn     = document.getElementById('clearSerial');
 
-    // Disconnect if already connected
+  // ── Auto-scroll toggle ──
+  autoScrollBtn.addEventListener('click', () => {
+    autoScroll = !autoScroll;
+    autoScrollBtn.style.borderColor = autoScroll ? 'var(--accent2)' : 'var(--border)';
+    autoScrollBtn.style.color       = autoScroll ? 'var(--accent2)' : 'var(--muted)';
+    autoScrollBtn.textContent       = autoScroll ? '⬇ Auto' : '⏸ Auto';
+    autoScrollBtn.title             = autoScroll ? 'Auto-scroll on' : 'Auto-scroll off';
+  });
+
+  // ── Copy all output ──
+  copyBtn.addEventListener('click', () => {
+    const text = Array.from(output.querySelectorAll('div'))
+      .map(d => d.textContent).join('\n');
+    if (!text) return;
+    navigator.clipboard.writeText(text).then(() => {
+      copyBtn.textContent = '✓ Copied';
+      setTimeout(() => { copyBtn.textContent = '⎘ Copy'; }, 1500);
+    });
+  });
+
+  // ── Clear ──
+  clearBtn.addEventListener('click', () => {
+    output.innerHTML = '<span class="serial-hint">Connect your board via USB and click Connect to see live output.</span>';
+  });
+
+  // ── Append line helper ──
+  function appendLine(line) {
+    if (!line.trim()) return;
+    const div = document.createElement('div');
+    if      (line.includes('[info]'))  div.className = 'serial-line-info';
+    else if (line.includes('[debug]')) div.className = 'serial-line-debug';
+    else if (line.includes('[warn]'))  div.className = 'serial-line-warn';
+    else if (line.includes('[error]')) div.className = 'serial-line-error';
+    div.textContent = line;
+    output.appendChild(div);
+    if (autoScroll) output.scrollTop = output.scrollHeight;
+  }
+
+  // ── Connect / Disconnect ──
+  connectBtn.addEventListener('click', async () => {
     if (serialPort) {
       try { await serialReader?.cancel(); } catch(e) {}
-      try { await serialPort.close(); } catch(e) {}
+      try { await serialPort.close(); }    catch(e) {}
       serialPort = null;
       serialReader = null;
-      btn.textContent = 'Connect';
-      btn.style.borderColor = '';
-      btn.style.color = '';
+      connectBtn.textContent = 'Connect';
+      connectBtn.style.borderColor = '';
+      connectBtn.style.color = '';
       return;
     }
 
     if (isConnecting) return;
     isConnecting = true;
-    btn.textContent = 'Connecting…';
+    connectBtn.textContent = 'Connecting…';
 
     try {
       const port = await navigator.serial.requestPort();
-
-      // If port is already open, close it first
       try { await port.close(); } catch(e) {}
-
       const baud = parseInt(document.getElementById('baudRate').value);
       await port.open({ baudRate: baud });
 
       serialPort = port;
-      btn.textContent = 'Disconnect';
-      btn.style.borderColor = 'var(--accent2)';
-      btn.style.color = 'var(--accent2)';
+      connectBtn.textContent = 'Disconnect';
+      connectBtn.style.borderColor = 'var(--accent2)';
+      connectBtn.style.color = 'var(--accent2)';
       output.innerHTML = '';
 
       const decoder = new TextDecoderStream();
-      const pipeDone = serialPort.readable.pipeTo(decoder.writable);
+      serialPort.readable.pipeTo(decoder.writable);
       const reader = decoder.readable.getReader();
       serialReader = reader;
 
@@ -498,53 +539,36 @@
           buffer += value;
           const lines = buffer.split('\n');
           buffer = lines.pop();
-          for (const line of lines) {
-            if (!line.trim()) continue;
-            const div = document.createElement('div');
-            if      (line.includes('[info]'))  div.className = 'serial-line-info';
-            else if (line.includes('[debug]')) div.className = 'serial-line-debug';
-            else if (line.includes('[warn]'))  div.className = 'serial-line-warn';
-            else if (line.includes('[error]')) div.className = 'serial-line-error';
-            div.textContent = line;
-            output.appendChild(div);
-            output.scrollTop = output.scrollHeight;
-          }
+          lines.forEach(appendLine);
         }
       } catch(e) {
-        // Reader cancelled — normal on disconnect
+        // cancelled on disconnect — normal
       } finally {
         reader.releaseLock();
         try { await serialPort.close(); } catch(e) {}
         serialPort = null;
         serialReader = null;
-        btn.textContent = 'Connect';
-        btn.style.borderColor = '';
-        btn.style.color = '';
+        connectBtn.textContent = 'Connect';
+        connectBtn.style.borderColor = '';
+        connectBtn.style.color = '';
       }
 
     } catch(e) {
       if (e.name !== 'NotFoundError') {
         const div = document.createElement('div');
         div.className = 'serial-line-error';
-        if (e.message.includes('already open')) {
-          div.textContent = '⚠ Port is in use — close Arduino IDE Serial Monitor first, then try again.';
-        } else {
-          div.textContent = `Error: ${e.message}`;
-        }
+        div.textContent = e.message.includes('already open')
+          ? '⚠ Port in use — close Arduino IDE Serial Monitor first, then try again.'
+          : `Error: ${e.message}`;
         output.appendChild(div);
       }
       serialPort = null;
-      btn.textContent = 'Connect';
-      btn.style.borderColor = '';
-      btn.style.color = '';
+      connectBtn.textContent = 'Connect';
+      connectBtn.style.borderColor = '';
+      connectBtn.style.color = '';
     } finally {
       isConnecting = false;
     }
-  });
-
-  document.getElementById('clearSerial').addEventListener('click', () => {
-    document.getElementById('serialOutput').innerHTML =
-      '<span class="serial-hint">Connect your board via USB and click Connect to see live output.</span>';
   });
 </script>
 
