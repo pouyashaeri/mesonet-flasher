@@ -21,148 +21,86 @@
       --font-sans: 'Inter', system-ui, sans-serif;
     }
 
-    body {
-      background: var(--bg);
-      color: var(--text);
-      font-family: var(--font-sans);
-      min-height: 100vh;
-      padding: 0;
-    }
+    body { background: var(--bg); color: var(--text); font-family: var(--font-sans); min-height: 100vh; }
 
-    /* ── Header ── */
     header {
-      background: var(--surface);
-      border-bottom: 1px solid var(--border);
-      padding: 16px 32px;
-      display: flex;
-      align-items: center;
-      gap: 12px;
+      background: var(--surface); border-bottom: 1px solid var(--border);
+      padding: 16px 32px; display: flex; align-items: center; gap: 12px;
     }
-    .logo {
-      font-family: var(--font-mono);
-      font-size: 13px;
-      color: var(--accent);
-      letter-spacing: 0.05em;
-    }
+    .logo { font-family: var(--font-mono); font-size: 13px; color: var(--accent); letter-spacing: 0.05em; }
     .logo span { color: var(--accent2); }
-    header h1 {
-      font-size: 15px;
-      font-weight: 600;
-      color: var(--text);
-    }
+    header h1 { font-size: 15px; font-weight: 600; }
 
-    /* ── Step indicator ── */
     .steps {
-      display: flex;
-      align-items: center;
-      gap: 0;
-      padding: 20px 32px;
-      border-bottom: 1px solid var(--border);
-      background: var(--surface);
+      display: flex; align-items: center; gap: 0;
+      padding: 20px 32px; border-bottom: 1px solid var(--border); background: var(--surface);
     }
-    .step {
-      display: flex;
-      align-items: center;
-      gap: 8px;
-      font-size: 13px;
-      color: var(--muted);
-    }
+    .step { display: flex; align-items: center; gap: 8px; font-size: 13px; color: var(--muted); }
     .step.active { color: var(--text); }
-    .step.done { color: var(--accent2); }
     .step-num {
-      width: 24px; height: 24px;
-      border-radius: 50%;
-      border: 1.5px solid var(--border);
+      width: 24px; height: 24px; border-radius: 50%; border: 1.5px solid var(--border);
       display: flex; align-items: center; justify-content: center;
-      font-size: 11px; font-weight: 600;
-      font-family: var(--font-mono);
+      font-size: 11px; font-weight: 600; font-family: var(--font-mono);
     }
     .step.active .step-num { border-color: var(--accent); color: var(--accent); background: rgba(88,166,255,0.1); }
-    .step.done .step-num { border-color: var(--accent2); color: var(--accent2); background: rgba(63,185,80,0.1); }
     .step-divider { flex: 1; height: 1px; background: var(--border); margin: 0 16px; max-width: 48px; }
 
-    /* ── Main layout ── */
-    main {
-      max-width: 720px;
-      margin: 0 auto;
-      padding: 40px 24px 80px;
-    }
+    main { max-width: 720px; margin: 0 auto; padding: 40px 24px 80px; }
 
-    .page-title {
-      font-size: 22px;
-      font-weight: 700;
-      margin-bottom: 6px;
+    .page-title { font-size: 22px; font-weight: 700; margin-bottom: 6px; }
+    .page-sub { font-size: 14px; color: var(--muted); margin-bottom: 32px; line-height: 1.5; }
+
+    /* ── Device picker ── */
+    .device-picker { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; margin-bottom: 36px; }
+    .device-card {
+      background: var(--surface); border: 1.5px solid var(--border); border-radius: var(--radius);
+      padding: 20px; cursor: pointer; transition: border-color 0.15s, background 0.15s;
     }
-    .page-sub {
-      font-size: 14px;
-      color: var(--muted);
-      margin-bottom: 36px;
-      line-height: 1.5;
+    .device-card:hover { border-color: #4d5560; }
+    .device-card.selected { border-color: var(--accent); background: rgba(88,166,255,0.06); }
+    .device-icon { font-size: 22px; margin-bottom: 10px; }
+    .device-name { font-size: 14px; font-weight: 600; margin-bottom: 4px; }
+    .device-desc { font-size: 12px; color: var(--muted); line-height: 1.4; }
+    .device-radio {
+      width: 16px; height: 16px; border-radius: 50%; border: 1.5px solid var(--border);
+      display: inline-block; margin-bottom: 10px; position: relative; float: right;
+    }
+    .device-card.selected .device-radio { border-color: var(--accent); }
+    .device-card.selected .device-radio::after {
+      content: ''; position: absolute; inset: 3px; border-radius: 50%; background: var(--accent);
     }
 
     /* ── Section ── */
     .section {
-      background: var(--surface);
-      border: 1px solid var(--border);
-      border-radius: var(--radius);
-      margin-bottom: 20px;
-      overflow: hidden;
+      background: var(--surface); border: 1px solid var(--border);
+      border-radius: var(--radius); margin-bottom: 20px; overflow: hidden;
     }
-    .section-header {
-      padding: 14px 20px;
-      border-bottom: 1px solid var(--border);
-      display: flex;
-      align-items: center;
-      gap: 10px;
-    }
+    .section-header { padding: 14px 20px; border-bottom: 1px solid var(--border); display: flex; align-items: center; gap: 10px; }
     .section-icon { font-size: 16px; }
-    .section-title { font-size: 13px; font-weight: 600; color: var(--text); }
+    .section-title { font-size: 13px; font-weight: 600; }
     .section-desc { font-size: 12px; color: var(--muted); margin-left: auto; }
     .section-body { padding: 20px; display: grid; gap: 16px; }
 
-    /* ── Field ── */
     .field { display: flex; flex-direction: column; gap: 6px; }
     .field-row { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; }
     .field-row-3 { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 16px; }
 
-    label {
-      font-size: 12px;
-      font-weight: 500;
-      color: var(--muted);
-      letter-spacing: 0.02em;
-      text-transform: uppercase;
+    label { font-size: 12px; font-weight: 500; color: var(--muted); letter-spacing: 0.02em; text-transform: uppercase; }
+    input[type="text"], input[type="email"], input[type="password"], input[type="number"], select {
+      background: var(--bg); border: 1px solid var(--border); border-radius: 6px;
+      color: var(--text); font-family: var(--font-sans); font-size: 14px;
+      padding: 9px 12px; width: 100%; transition: border-color 0.15s; outline: none;
     }
-    input[type="text"],
-    input[type="email"],
-    input[type="number"] {
-      background: var(--bg);
-      border: 1px solid var(--border);
-      border-radius: 6px;
-      color: var(--text);
-      font-family: var(--font-sans);
-      font-size: 14px;
-      padding: 9px 12px;
-      width: 100%;
-      transition: border-color 0.15s;
-      outline: none;
-    }
-    input:focus { border-color: var(--accent); }
+    input:focus, select:focus { border-color: var(--accent); }
     input::placeholder { color: var(--muted); }
     .field-hint { font-size: 11px; color: var(--muted); }
+    .pwd-wrap { position: relative; }
+    .pwd-toggle { position: absolute; right: 10px; top: 50%; transform: translateY(-50%); background: none; border: none; color: var(--muted); font-size: 12px; cursor: pointer; }
 
-    /* ── Collapsible advanced ── */
     .advanced-toggle {
-      display: flex;
-      align-items: center;
-      gap: 8px;
-      background: none;
-      border: none;
-      color: var(--muted);
-      font-size: 13px;
-      cursor: pointer;
-      padding: 4px 0;
-      font-family: var(--font-sans);
-      margin-top: 4px;
+      display: flex; align-items: center; gap: 8px; background: none; border: none;
+      color: var(--muted); font-size: 13px; cursor: pointer; padding: 4px 0;
+      font-family: var(--font-sans); margin-top: 4px;
     }
     .advanced-toggle:hover { color: var(--text); }
     .toggle-arrow { transition: transform 0.2s; font-size: 10px; }
@@ -170,30 +108,19 @@
     .advanced-section { display: none; margin-top: 8px; }
     .advanced-section.open { display: block; }
 
-    /* ── Submit ── */
-    .submit-area {
-      margin-top: 32px;
-      display: flex;
-      justify-content: flex-end;
-    }
+    .device-fields { display: none; }
+    .device-fields.active { display: block; }
+
+    .submit-area { margin-top: 32px; display: flex; justify-content: flex-end; }
     .btn-primary {
-      background: var(--accent);
-      color: #0d1117;
-      border: none;
-      border-radius: 6px;
-      font-size: 14px;
-      font-weight: 600;
-      padding: 11px 28px;
-      cursor: pointer;
-      font-family: var(--font-sans);
-      transition: opacity 0.15s;
-      display: flex;
-      align-items: center;
-      gap: 8px;
+      background: var(--accent); color: #0d1117; border: none; border-radius: 6px;
+      font-size: 14px; font-weight: 600; padding: 11px 28px; cursor: pointer;
+      font-family: var(--font-sans); transition: opacity 0.15s;
+      display: flex; align-items: center; gap: 8px;
     }
     .btn-primary:hover { opacity: 0.88; }
+    .btn-primary:disabled { opacity: 0.4; cursor: not-allowed; }
 
-    /* ── Required asterisk ── */
     .req { color: var(--danger); margin-left: 2px; }
   </style>
 </head>
@@ -206,203 +133,418 @@
 </header>
 
 <div class="steps">
-  <div class="step active">
-    <div class="step-num">1</div>
-    Configure
-  </div>
+  <div class="step active"><div class="step-num">1</div>Configure</div>
   <div class="step-divider"></div>
-  <div class="step">
-    <div class="step-num">2</div>
-    Flash
-  </div>
+  <div class="step"><div class="step-num">2</div>Flash</div>
 </div>
 
 <main>
   <div class="page-title">Configure your station</div>
-  <p class="page-sub">Fill in your details and location. Your config is baked directly into the firmware — no app or server needed after flashing.</p>
+  <p class="page-sub">Pick your hardware, fill in your details, and your config gets baked directly into the firmware — no app or server needed after flashing.</p>
+
+  <!-- Device picker -->
+  <div class="device-picker">
+    <div class="device-card selected" id="pickRp2040" data-device="rp2040">
+      <div class="device-radio"></div>
+      <div class="device-icon">📡</div>
+      <div class="device-name">RP2040 + RFM95 LoRa</div>
+      <div class="device-desc">Adafruit Feather RP2040 RFM95 mesonet relay/sensor node. Flashed via drag-and-drop.</div>
+    </div>
+    <div class="device-card" id="pickEsp32" data-device="esp32">
+      <div class="device-radio"></div>
+      <div class="device-icon">📶</div>
+      <div class="device-name">ESP32 Atom Lite</div>
+      <div class="device-desc">M5Stack Atom Lite WiFi/PoE station (BME680, RG15, etc). Flashed over USB, no drivers needed.</div>
+    </div>
+  </div>
 
   <form id="configForm" novalidate>
 
-    <!-- Station Identity -->
-    <div class="section">
-      <div class="section-header">
-        <span class="section-icon">👤</span>
-        <span class="section-title">Station Owner</span>
-        <span class="section-desc">Who operates this station</span>
-      </div>
-      <div class="section-body">
-        <div class="field-row">
-          <div class="field">
-            <label>First name <span class="req">*</span></label>
-            <input type="text" id="firstname" placeholder="e.g. Jane" required maxlength="20" />
-          </div>
-          <div class="field">
-            <label>Last name <span class="req">*</span></label>
-            <input type="text" id="lastname" placeholder="e.g. Smith" required maxlength="20" />
-          </div>
-        </div>
-        <div class="field">
-          <label>Email <span class="req">*</span></label>
-          <input type="email" id="email" placeholder="your@email.com" required maxlength="48" />
-        </div>
-        <div class="field">
-          <label>Organization</label>
-          <input type="text" id="organization" placeholder="e.g. your University / Lab" maxlength="20" />
-        </div>
-      </div>
-    </div>
+    <!-- ══════════════ RP2040 FIELDS ══════════════ -->
+    <div class="device-fields active" id="rp2040Fields">
 
-    <!-- Location -->
-    <div class="section">
-      <div class="section-header">
-        <span class="section-icon">📍</span>
-        <span class="section-title">Station Location</span>
-        <span class="section-desc">Where is this station deployed</span>
-      </div>
-      <div class="section-body">
-        <div class="field-row-3">
-          <div class="field">
-            <label>Latitude</label>
-            <input type="number" id="latitude" placeholder="e.g. 39.9784" step="0.0001" min="-90" max="90" />
-          </div>
-          <div class="field">
-            <label>Longitude</label>
-            <input type="number" id="longitude" placeholder="e.g. -105.2749" step="0.0001" min="-180" max="180" />
-          </div>
-          <div class="field">
-            <label>Altitude (m)</label>
-            <input type="number" id="altitude" placeholder="e.g. 1650" step="1" />
-          </div>
+      <div class="section">
+        <div class="section-header">
+          <span class="section-icon">👤</span>
+          <span class="section-title">Station Owner</span>
+          <span class="section-desc">Who operates this station</span>
         </div>
-        <div class="field">
-          <label>Device</label>
-          <input type="text" id="device" value="adafruit RP2040 RFM95 LoRa" readonly style="opacity:0.5;cursor:not-allowed;" />
-        </div>
-      </div>
-    </div>
-
-    <!-- Advanced -->
-    <div class="section">
-      <div class="section-header">
-        <span class="section-icon">⚙️</span>
-        <span class="section-title">Advanced</span>
-        <span class="section-desc">Timing &amp; radio — defaults work for most setups</span>
-      </div>
-      <div class="section-body">
-        <button type="button" class="advanced-toggle" id="advToggle">
-          <span class="toggle-arrow" id="advArrow">▶</span>
-          Show advanced settings
-        </button>
-        <div class="advanced-section" id="advSection">
-          <div style="display:grid;gap:16px;margin-top:8px;">
-            <div class="field-row">
-              <div class="field">
-                <label>Sensor transmit delay (ms)</label>
-                <input type="number" id="sensor_transmit_delay" value="60000" min="5000" />
-                <span class="field-hint">How often sensors publish</span>
-              </div>
-              <div class="field">
-                <label>Station info interval (ms)</label>
-                <input type="number" id="station_info_interval" value="86400000" min="60000" />
-                <span class="field-hint">Default 24 h</span>
-              </div>
+        <div class="section-body">
+          <div class="field-row">
+            <div class="field">
+              <label>First name <span class="req">*</span></label>
+              <input type="text" id="firstname" placeholder="e.g. Jane" maxlength="20" />
             </div>
-            <div class="field-row">
-              <div class="field">
-                <label>Pong timeout (ms)</label>
-                <input type="number" id="pong_timeout" value="5000" min="1000" />
-              </div>
-              <div class="field">
-                <label>Connect timeout (ms)</label>
-                <input type="number" id="connect_timeout" value="900000" min="60000" />
-              </div>
+            <div class="field">
+              <label>Last name <span class="req">*</span></label>
+              <input type="text" id="lastname" placeholder="e.g. Smith" maxlength="20" />
             </div>
           </div>
+          <div class="field">
+            <label>Email <span class="req">*</span></label>
+            <input type="email" id="email" placeholder="your@email.com" maxlength="48" />
+          </div>
+          <div class="field">
+            <label>Organization</label>
+            <input type="text" id="organization" placeholder="e.g. your University / Lab" maxlength="20" />
+          </div>
         </div>
       </div>
+
+      <div class="section">
+        <div class="section-header">
+          <span class="section-icon">📍</span>
+          <span class="section-title">Station Location</span>
+          <span class="section-desc">Where is this station deployed</span>
+        </div>
+        <div class="section-body">
+          <div class="field-row-3">
+            <div class="field">
+              <label>Latitude</label>
+              <input type="number" id="latitude" placeholder="e.g. 39.9784" step="0.0001" min="-90" max="90" />
+            </div>
+            <div class="field">
+              <label>Longitude</label>
+              <input type="number" id="longitude" placeholder="e.g. -105.2749" step="0.0001" min="-180" max="180" />
+            </div>
+            <div class="field">
+              <label>Altitude (m)</label>
+              <input type="number" id="altitude" placeholder="e.g. 1650" step="1" />
+            </div>
+          </div>
+          <div class="field">
+            <label>Device</label>
+            <input type="text" value="adafruit RP2040 RFM95 LoRa" readonly style="opacity:0.5;cursor:not-allowed;" />
+          </div>
+        </div>
+      </div>
+
+      <div class="section">
+        <div class="section-header">
+          <span class="section-icon">⚙️</span>
+          <span class="section-title">Advanced</span>
+          <span class="section-desc">Timing &amp; radio — defaults work for most setups</span>
+        </div>
+        <div class="section-body">
+          <button type="button" class="advanced-toggle" id="rp2040AdvToggle">
+            <span class="toggle-arrow" id="rp2040AdvArrow">▶</span>
+            Show advanced settings
+          </button>
+          <div class="advanced-section" id="rp2040AdvSection">
+            <div style="display:grid;gap:16px;margin-top:8px;">
+              <div class="field-row">
+                <div class="field">
+                  <label>Sensor transmit delay (ms)</label>
+                  <input type="number" id="sensor_transmit_delay" value="60000" min="5000" />
+                  <span class="field-hint">How often sensors publish</span>
+                </div>
+                <div class="field">
+                  <label>Station info interval (ms)</label>
+                  <input type="number" id="station_info_interval" value="86400000" min="60000" />
+                  <span class="field-hint">Default 24 h</span>
+                </div>
+              </div>
+              <div class="field-row">
+                <div class="field">
+                  <label>Pong timeout (ms)</label>
+                  <input type="number" id="pong_timeout" value="5000" min="1000" />
+                </div>
+                <div class="field">
+                  <label>Connect timeout (ms)</label>
+                  <input type="number" id="connect_timeout" value="900000" min="60000" />
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+    </div>
+
+    <!-- ══════════════ ESP32 ATOM LITE FIELDS ══════════════ -->
+    <div class="device-fields" id="esp32Fields">
+
+      <div class="section">
+        <div class="section-header">
+          <span class="section-icon">🏷️</span>
+          <span class="section-title">Station Identity</span>
+          <span class="section-desc">MQTT device ID &amp; topic</span>
+        </div>
+        <div class="section-body">
+          <div class="field">
+            <label>Device ID <span class="req">*</span></label>
+            <input type="text" id="esp_id" placeholder="e.g. m5atom/esp32/aabbffee" maxlength="47" />
+            <span class="field-hint">Unique identifier for this station — appears in every published payload</span>
+          </div>
+          <div class="field">
+            <label>MQTT Topic <span class="req">*</span></label>
+            <input type="text" id="esp_topic" placeholder="e.g. ncar/iotwx/co/boulder/station000" maxlength="95" />
+            <span class="field-hint">Full topic path this station publishes measurements to</span>
+          </div>
+        </div>
+      </div>
+
+      <div class="section">
+        <div class="section-header">
+          <span class="section-icon">📶</span>
+          <span class="section-title">WiFi</span>
+          <span class="section-desc">Network the station connects through</span>
+        </div>
+        <div class="section-body">
+          <div class="field">
+            <label>Use WiFi (vs. Ethernet/PoE)</label>
+            <select id="esp_use_wifi">
+              <option value="1" selected>WiFi</option>
+              <option value="0">Ethernet / PoE HAT</option>
+            </select>
+          </div>
+          <div class="field-row" id="esp_wifiFields">
+            <div class="field">
+              <label>WiFi SSID</label>
+              <input type="text" id="esp_wifi_ssid" placeholder="e.g. UCAR Visitor" maxlength="47" />
+            </div>
+            <div class="field">
+              <label>WiFi Password</label>
+              <div class="pwd-wrap">
+                <input type="password" id="esp_wifi_pwd" placeholder="leave blank for open networks" maxlength="63" />
+                <button type="button" class="pwd-toggle" id="esp_pwdToggle">show</button>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div class="section">
+        <div class="section-header">
+          <span class="section-icon">📡</span>
+          <span class="section-title">MQTT Broker</span>
+          <span class="section-desc">Where measurements get published</span>
+        </div>
+        <div class="section-body">
+          <div class="field-row">
+            <div class="field">
+              <label>Broker Host <span class="req">*</span></label>
+              <input type="text" id="esp_mq_ip" placeholder="e.g. iotwx.ucar.edu" maxlength="63" />
+            </div>
+            <div class="field">
+              <label>Broker Port</label>
+              <input type="number" id="esp_mq_port" value="1883" min="1" max="65535" />
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div class="section">
+        <div class="section-header">
+          <span class="section-icon">⚙️</span>
+          <span class="section-title">Advanced</span>
+          <span class="section-desc">Timing &amp; hardware — defaults work for most setups</span>
+        </div>
+        <div class="section-body">
+          <button type="button" class="advanced-toggle" id="espAdvToggle">
+            <span class="toggle-arrow" id="espAdvArrow">▶</span>
+            Show advanced settings
+          </button>
+          <div class="advanced-section" id="espAdvSection">
+            <div style="display:grid;gap:16px;margin-top:8px;">
+              <div class="field-row-3">
+                <div class="field">
+                  <label>Publish interval (min)</label>
+                  <input type="number" id="esp_publish_interval" value="2" min="1" />
+                </div>
+                <div class="field">
+                  <label>Reset interval (min)</label>
+                  <input type="number" id="esp_reset_interval" value="360" min="10" />
+                  <span class="field-hint">Full reboot cadence</span>
+                </div>
+                <div class="field">
+                  <label>Timezone offset (s)</label>
+                  <input type="number" id="esp_timezone" value="21600" />
+                </div>
+              </div>
+              <div class="field-row-3">
+                <div class="field">
+                  <label>GPIO config</label>
+                  <select id="esp_gpio_config">
+                    <option value="A" selected>A (Grove pins 21,25)</option>
+                    <option value="B">B (Grove pins 26,32)</option>
+                  </select>
+                </div>
+                <div class="field">
+                  <label>Max CPU freq (MHz)</label>
+                  <input type="number" id="esp_max_frequency" value="80" min="10" max="240" />
+                </div>
+                <div class="field">
+                  <label>Aspiration spin-up (s)</label>
+                  <input type="number" id="esp_aspiration_time" value="10" min="0" />
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
     </div>
 
     <div class="submit-area">
-      <button type="submit" class="btn-primary">
-        Save &amp; go to Flash
-        <span>→</span>
-      </button>
+      <button type="submit" class="btn-primary">Save &amp; go to Flash <span>→</span></button>
     </div>
 
   </form>
 </main>
 
 <script>
-  // Toggle advanced
-  const advToggle = document.getElementById('advToggle');
-  const advArrow  = document.getElementById('advArrow');
-  const advSection = document.getElementById('advSection');
-  advToggle.addEventListener('click', () => {
-    advSection.classList.toggle('open');
-    advArrow.classList.toggle('open');
-    advToggle.childNodes[2].textContent = advSection.classList.contains('open')
-      ? ' Hide advanced settings' : ' Show advanced settings';
+  // ── Device picker ──
+  const pickRp2040 = document.getElementById('pickRp2040');
+  const pickEsp32  = document.getElementById('pickEsp32');
+  const rp2040Fields = document.getElementById('rp2040Fields');
+  const esp32Fields  = document.getElementById('esp32Fields');
+  let selectedDevice = 'rp2040';
+
+  function selectDevice(device) {
+    selectedDevice = device;
+    pickRp2040.classList.toggle('selected', device === 'rp2040');
+    pickEsp32.classList.toggle('selected', device === 'esp32');
+    rp2040Fields.classList.toggle('active', device === 'rp2040');
+    esp32Fields.classList.toggle('active', device === 'esp32');
+  }
+  pickRp2040.addEventListener('click', () => selectDevice('rp2040'));
+  pickEsp32.addEventListener('click', () => selectDevice('esp32'));
+
+  // ── Advanced toggles (both device sections) ──
+  function wireAdvToggle(toggleId, arrowId, sectionId) {
+    const toggle = document.getElementById(toggleId);
+    const arrow  = document.getElementById(arrowId);
+    const section = document.getElementById(sectionId);
+    toggle.addEventListener('click', () => {
+      section.classList.toggle('open');
+      arrow.classList.toggle('open');
+      toggle.childNodes[2].textContent = section.classList.contains('open')
+        ? ' Hide advanced settings' : ' Show advanced settings';
+    });
+  }
+  wireAdvToggle('rp2040AdvToggle', 'rp2040AdvArrow', 'rp2040AdvSection');
+  wireAdvToggle('espAdvToggle', 'espAdvArrow', 'espAdvSection');
+
+  // ── ESP32 password show/hide ──
+  const espPwdInput = document.getElementById('esp_wifi_pwd');
+  const espPwdToggle = document.getElementById('esp_pwdToggle');
+  espPwdToggle.addEventListener('click', () => {
+    const show = espPwdInput.type === 'password';
+    espPwdInput.type = show ? 'text' : 'password';
+    espPwdToggle.textContent = show ? 'hide' : 'show';
   });
 
-  // Pre-fill from sessionStorage if returning
-  const saved = JSON.parse(sessionStorage.getItem('iotwx_config') || '{}');
-  const si = saved.station_info || {};
-  const ra = saved.radio || {};
-  if (si.firstname) document.getElementById('firstname').value = si.firstname;
-  if (si.lastname)  document.getElementById('lastname').value  = si.lastname;
-  if (si.email)     document.getElementById('email').value     = si.email;
-  if (si.organization) document.getElementById('organization').value = si.organization;
-  if (si.latitude)  document.getElementById('latitude').value  = si.latitude;
-  if (si.longitude) document.getElementById('longitude').value = si.longitude;
-  if (si.altitude)  document.getElementById('altitude').value  = si.altitude;
-  if (si.sensor_transmit_delay) document.getElementById('sensor_transmit_delay').value = si.sensor_transmit_delay;
-  if (si.station_info_interval) document.getElementById('station_info_interval').value = si.station_info_interval;
-  if (ra.pong_timeout)    document.getElementById('pong_timeout').value    = ra.pong_timeout;
-  if (ra.connect_timeout) document.getElementById('connect_timeout').value = ra.connect_timeout;
+  // ── Pre-fill from sessionStorage if returning ──
+  const saved = JSON.parse(sessionStorage.getItem('iotwx_setup') || '{}');
+  if (saved.device) selectDevice(saved.device);
 
-  // Submit
+  if (saved.device === 'rp2040' && saved.config) {
+    const si = saved.config.station_info || {};
+    const ra = saved.config.radio || {};
+    if (si.firstname) document.getElementById('firstname').value = si.firstname;
+    if (si.lastname)  document.getElementById('lastname').value  = si.lastname;
+    if (si.email)     document.getElementById('email').value     = si.email;
+    if (si.organization) document.getElementById('organization').value = si.organization;
+    if (si.latitude)  document.getElementById('latitude').value  = si.latitude;
+    if (si.longitude) document.getElementById('longitude').value = si.longitude;
+    if (si.altitude)  document.getElementById('altitude').value  = si.altitude;
+    if (si.sensor_transmit_delay) document.getElementById('sensor_transmit_delay').value = si.sensor_transmit_delay;
+    if (si.station_info_interval) document.getElementById('station_info_interval').value = si.station_info_interval;
+    if (ra.pong_timeout)    document.getElementById('pong_timeout').value    = ra.pong_timeout;
+    if (ra.connect_timeout) document.getElementById('connect_timeout').value = ra.connect_timeout;
+  }
+  if (saved.device === 'esp32' && saved.config) {
+    const c = saved.config;
+    const map = {
+      esp_id: 'id', esp_topic: 'topic', esp_wifi_ssid: 'wifi_ssid', esp_wifi_pwd: 'wifi_pwd',
+      esp_mq_ip: 'mq_ip', esp_mq_port: 'mq_port', esp_use_wifi: 'use_wifi',
+      esp_publish_interval: 'publish_interval', esp_reset_interval: 'reset_interval',
+      esp_timezone: 'timezone', esp_gpio_config: 'gpio_config',
+      esp_max_frequency: 'max_frequency', esp_aspiration_time: 'aspiration_time',
+    };
+    for (const [elId, key] of Object.entries(map)) {
+      if (c[key] !== undefined) {
+        const el = document.getElementById(elId);
+        if (el) el.value = c[key];
+      }
+    }
+  }
+
+  // ── Submit ──
   document.getElementById('configForm').addEventListener('submit', e => {
     e.preventDefault();
-    const firstname = document.getElementById('firstname').value.trim();
-    const lastname  = document.getElementById('lastname').value.trim();
-    const email     = document.getElementById('email').value.trim();
-    if (!firstname || !lastname || !email) {
-      alert('Please fill in First name, Last name, and Email.');
-      return;
-    }
-    const config = {
-      radio: {
-        overload_threshold: 0.85,
-        station_relay_midpoint: 10,
-        station_relay_steepness: 0.2,
-        station_sensor_midpoint: 5,
-        station_sensor_steepness: 0.5,
-        station_relay_weight: 0.7,
-        station_sensor_weight: 0.3,
-        score_rssi_weight: 0.35,
-        score_load_weight: 0.35,
-        score_type_weight: 0.2,
-        score_relay_weight: 0.1,
-        score_relay_decay: 1.0,
-        pong_timeout:    parseInt(document.getElementById('pong_timeout').value)    || 5000,
-        connect_timeout: parseInt(document.getElementById('connect_timeout').value) || 900000,
-      },
-      station_info: {
-        firstname,
-        lastname,
-        email,
-        organization: document.getElementById('organization').value.trim(),
-        device:       'adafruit RP2040 RFM95 LoRa',
-        latitude:     parseFloat(document.getElementById('latitude').value)  || 0.0,
-        longitude:    parseFloat(document.getElementById('longitude').value) || 0.0,
-        altitude:     parseFloat(document.getElementById('altitude').value)  || 0.0,
-        station_info_interval:  parseInt(document.getElementById('station_info_interval').value)  || 86400000,
-        fixed_deployment: false,
-        gps_fixed_interval: 43200000,
-        sensor_transmit_delay: parseInt(document.getElementById('sensor_transmit_delay').value) || 60000,
+
+    if (selectedDevice === 'rp2040') {
+      const firstname = document.getElementById('firstname').value.trim();
+      const lastname  = document.getElementById('lastname').value.trim();
+      const email     = document.getElementById('email').value.trim();
+      if (!firstname || !lastname || !email) {
+        alert('Please fill in First name, Last name, and Email.');
+        return;
       }
-    };
-    sessionStorage.setItem('iotwx_config', JSON.stringify(config));
+      const config = {
+        radio: {
+          overload_threshold: 0.85,
+          station_relay_midpoint: 10,
+          station_relay_steepness: 0.2,
+          station_sensor_midpoint: 5,
+          station_sensor_steepness: 0.5,
+          station_relay_weight: 0.7,
+          station_sensor_weight: 0.3,
+          score_rssi_weight: 0.35,
+          score_load_weight: 0.35,
+          score_type_weight: 0.2,
+          score_relay_weight: 0.1,
+          score_relay_decay: 1.0,
+          pong_timeout:    parseInt(document.getElementById('pong_timeout').value)    || 5000,
+          connect_timeout: parseInt(document.getElementById('connect_timeout').value) || 900000,
+        },
+        station_info: {
+          firstname, lastname, email,
+          organization: document.getElementById('organization').value.trim(),
+          device:       'adafruit RP2040 RFM95 LoRa',
+          latitude:     parseFloat(document.getElementById('latitude').value)  || 0.0,
+          longitude:    parseFloat(document.getElementById('longitude').value) || 0.0,
+          altitude:     parseFloat(document.getElementById('altitude').value)  || 0.0,
+          station_info_interval:  parseInt(document.getElementById('station_info_interval').value)  || 86400000,
+          fixed_deployment: false,
+          gps_fixed_interval: 43200000,
+          sensor_transmit_delay: parseInt(document.getElementById('sensor_transmit_delay').value) || 60000,
+        }
+      };
+      sessionStorage.setItem('iotwx_setup', JSON.stringify({ device: 'rp2040', config }));
+
+    } else {
+      const id       = document.getElementById('esp_id').value.trim();
+      const topic    = document.getElementById('esp_topic').value.trim();
+      const mq_ip    = document.getElementById('esp_mq_ip').value.trim();
+      const use_wifi = document.getElementById('esp_use_wifi').value;
+      const wifi_ssid = document.getElementById('esp_wifi_ssid').value.trim();
+
+      if (!id || !topic || !mq_ip) {
+        alert('Please fill in Device ID, MQTT Topic, and Broker Host.');
+        return;
+      }
+      if (use_wifi === '1' && !wifi_ssid) {
+        alert('Please enter a WiFi SSID, or switch to Ethernet/PoE.');
+        return;
+      }
+      const config = {
+        id, topic, mq_ip,
+        mq_port:          document.getElementById('esp_mq_port').value || '1883',
+        use_wifi, wifi_ssid,
+        wifi_pwd:         document.getElementById('esp_wifi_pwd').value,
+        publish_interval: document.getElementById('esp_publish_interval').value || '2',
+        reset_interval:   document.getElementById('esp_reset_interval').value || '360',
+        timezone:         document.getElementById('esp_timezone').value || '21600',
+        gpio_config:      document.getElementById('esp_gpio_config').value,
+        max_frequency:    document.getElementById('esp_max_frequency').value || '80',
+        aspiration_time:  document.getElementById('esp_aspiration_time').value || '10',
+      };
+      sessionStorage.setItem('iotwx_setup', JSON.stringify({ device: 'esp32', config }));
+    }
+
     window.location.href = 'flash.html';
   });
 </script>
