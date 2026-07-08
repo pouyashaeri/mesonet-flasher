@@ -4,6 +4,13 @@
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>IoTwx Mesonet — Station Setup</title>
+  <script>
+    (function() {
+      var saved = localStorage.getItem('iotwx_theme');
+      var theme = saved || (window.matchMedia('(prefers-color-scheme: light)').matches ? 'light' : 'dark');
+      if (theme === 'light') document.documentElement.setAttribute('data-theme', 'light');
+    })();
+  </script>
   <style>
     *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
 
@@ -21,7 +28,29 @@
       --font-sans: 'Inter', system-ui, sans-serif;
     }
 
-    body { background: var(--bg); color: var(--text); font-family: var(--font-sans); min-height: 100vh; }
+    :root[data-theme="light"] {
+      --bg:        #ffffff;
+      --surface:   #f6f8fa;
+      --border:    #d0d7de;
+      --accent:    #0969da;
+      --accent2:   #1a7f37;
+      --text:      #1f2328;
+      --muted:     #656d76;
+      --danger:    #cf222e;
+    }
+
+    body {
+      background: var(--bg); color: var(--text); font-family: var(--font-sans); min-height: 100vh;
+      transition: background 0.15s, color 0.15s;
+    }
+
+    .theme-toggle {
+      margin-left: auto; background: var(--bg); border: 1px solid var(--border);
+      border-radius: 6px; width: 32px; height: 32px; display: flex;
+      align-items: center; justify-content: center; cursor: pointer;
+      font-size: 15px; transition: border-color 0.15s, background 0.15s;
+    }
+    .theme-toggle:hover { border-color: var(--accent); }
 
     header {
       background: var(--surface); border-bottom: 1px solid var(--border);
@@ -125,6 +154,35 @@
     .dropzone-filename { font-size: 12px; color: var(--accent2); margin-top: 8px; }
     .dropzone-error { font-size: 12px; color: var(--danger); margin-top: 8px; }
 
+    /* ── Custom number-input stepper (replaces native browser arrows) ── */
+    .number-field { position: relative; }
+    .number-field input[type="number"] {
+      padding-right: 30px;
+      appearance: textfield;
+      -moz-appearance: textfield;
+    }
+    .number-field input[type="number"]::-webkit-outer-spin-button,
+    .number-field input[type="number"]::-webkit-inner-spin-button {
+      appearance: none;
+      -webkit-appearance: none;
+      margin: 0;
+    }
+    .number-stepper {
+      position: absolute; right: 1px; top: 1px; bottom: 1px; width: 24px;
+      display: flex; flex-direction: column;
+      border-left: 1px solid var(--border);
+      border-radius: 0 5px 5px 0; overflow: hidden;
+    }
+    .number-stepper button {
+      flex: 1; background: var(--bg); border: none; color: var(--muted);
+      cursor: pointer; font-size: 8px; line-height: 1;
+      display: flex; align-items: center; justify-content: center;
+      transition: background 0.1s, color 0.1s; padding: 0;
+    }
+    .number-stepper button:first-child { border-bottom: 1px solid var(--border); }
+    .number-stepper button:hover { background: var(--surface); color: var(--accent); }
+    .number-stepper button:active { background: rgba(88,166,255,0.15); }
+
     .submit-area { margin-top: 32px; display: flex; justify-content: flex-end; }
     .btn-primary {
       background: var(--accent); color: #0d1117; border: none; border-radius: 6px;
@@ -144,6 +202,7 @@
   <div class="logo">IoTwx<span>/</span>mesonet</div>
   <div style="width:1px;height:16px;background:var(--border);margin:0 4px;"></div>
   <h1>Station Setup</h1>
+  <button class="theme-toggle" id="themeToggle" aria-label="Toggle light/dark mode" type="button">🌙</button>
 </header>
 
 <div class="steps">
@@ -678,6 +737,62 @@
 
   setupDropzone('rp2040Dropzone', 'rp2040FileInput', 'rp2040DropFilename', 'rp2040DropError', applyRp2040Config);
   setupDropzone('esp32Dropzone', 'esp32FileInput', 'esp32DropFilename', 'esp32DropError', applyEsp32Config);
+
+  // ── Custom number-input steppers (replaces native browser arrows) ──
+  document.querySelectorAll('input[type="number"]').forEach(input => {
+    const wrap = document.createElement('div');
+    wrap.className = 'number-field';
+    input.parentNode.insertBefore(wrap, input);
+    wrap.appendChild(input);
+
+    const stepper = document.createElement('div');
+    stepper.className = 'number-stepper';
+    stepper.innerHTML = `
+      <button type="button" data-dir="up" tabindex="-1" aria-label="Increment">▲</button>
+      <button type="button" data-dir="down" tabindex="-1" aria-label="Decrement">▼</button>
+    `;
+    wrap.appendChild(stepper);
+  });
+
+  document.addEventListener('click', e => {
+    const btn = e.target.closest('.number-stepper button');
+    if (!btn) return;
+    const input = btn.closest('.number-field').querySelector('input[type="number"]');
+    if (!input) return;
+
+    const step = parseFloat(input.step) || 1;
+    const min = input.min !== '' ? parseFloat(input.min) : -Infinity;
+    const max = input.max !== '' ? parseFloat(input.max) : Infinity;
+    let val = parseFloat(input.value);
+    if (isNaN(val)) val = 0;
+    val = btn.dataset.dir === 'up' ? val + step : val - step;
+    val = Math.min(max, Math.max(min, val));
+
+    const decimals = (String(step).split('.')[1] || '').length;
+    input.value = decimals ? val.toFixed(decimals) : String(val);
+    input.dispatchEvent(new Event('input', { bubbles: true }));
+  });
+
+  // ── Theme toggle ──
+  (function() {
+    const btn = document.getElementById('themeToggle');
+    const root = document.documentElement;
+    function updateIcon() {
+      btn.textContent = root.getAttribute('data-theme') === 'light' ? '🌙' : '☀️';
+    }
+    updateIcon();
+    btn.addEventListener('click', () => {
+      const isLight = root.getAttribute('data-theme') === 'light';
+      if (isLight) {
+        root.removeAttribute('data-theme');
+        localStorage.setItem('iotwx_theme', 'dark');
+      } else {
+        root.setAttribute('data-theme', 'light');
+        localStorage.setItem('iotwx_theme', 'light');
+      }
+      updateIcon();
+    });
+  })();
 </script>
 </body>
 </html>

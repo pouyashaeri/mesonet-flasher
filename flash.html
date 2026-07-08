@@ -4,6 +4,13 @@
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>IoTwx Mesonet — Flash Station</title>
+  <script>
+    (function() {
+      var saved = localStorage.getItem('iotwx_theme');
+      var theme = saved || (window.matchMedia('(prefers-color-scheme: light)').matches ? 'light' : 'dark');
+      if (theme === 'light') document.documentElement.setAttribute('data-theme', 'light');
+    })();
+  </script>
   <style>
     *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
     :root {
@@ -13,7 +20,19 @@
       --font-mono: 'JetBrains Mono', 'Fira Code', 'Cascadia Code', monospace;
       --font-sans: 'Inter', system-ui, sans-serif;
     }
-    body { background: var(--bg); color: var(--text); font-family: var(--font-sans); min-height: 100vh; }
+    :root[data-theme="light"] {
+      --bg: #ffffff; --surface: #f6f8fa; --border: #d0d7de;
+      --accent: #0969da; --accent2: #1a7f37; --text: #1f2328;
+      --muted: #656d76; --danger: #cf222e; --warn: #9a6700;
+    }
+    body { background: var(--bg); color: var(--text); font-family: var(--font-sans); min-height: 100vh; transition: background 0.15s, color 0.15s; }
+    .theme-toggle {
+      margin-left: auto; background: var(--bg); border: 1px solid var(--border);
+      border-radius: 6px; width: 32px; height: 32px; display: flex;
+      align-items: center; justify-content: center; cursor: pointer;
+      font-size: 15px; transition: border-color 0.15s, background 0.15s;
+    }
+    .theme-toggle:hover { border-color: var(--accent); }
     header { background: var(--surface); border-bottom: 1px solid var(--border); padding: 16px 32px; display: flex; align-items: center; gap: 12px; }
     .logo { font-family: var(--font-mono); font-size: 13px; color: var(--accent); letter-spacing: 0.05em; }
     .logo span { color: var(--accent2); }
@@ -92,6 +111,7 @@
   <div class="logo">IoTwx<span>/</span>mesonet</div>
   <div style="width:1px;height:16px;background:var(--border);margin:0 4px;"></div>
   <h1>Station Setup</h1>
+  <button class="theme-toggle" id="themeToggle" aria-label="Toggle light/dark mode" type="button">🌙</button>
 </header>
 
 <div class="steps">
@@ -224,8 +244,8 @@
     <div class="how-to">
       <h3>Viewing boot output</h3>
       <div style="display:flex;gap:16px;align-items:flex-start;flex-wrap:wrap;">
-        <img src="assets/atomlite.jpg" alt="Reset button location on M5Stack Atom Lite" style="border-radius:6px;border:1px solid var(--border);width: 280px;;height:auto;object-fit:cover;flex-shrink:0;" />
-        <p style="font-size:13px;color:var(--muted);line-height:1.5;flex:1;min-width:400px;">
+        <img src="assets/atomlite.jpg" alt="Reset button location on M5Stack Atom Lite" style="border-radius:6px;border:1px solid var(--border);width:140px;height:auto;object-fit:cover;flex-shrink:0;" />
+        <p style="font-size:13px;color:var(--muted);line-height:1.5;flex:1;min-width:200px;">
           The Serial Monitor connects automatically after flashing, but the board's first boot usually finishes printing before the connection is ready. Press the <strong style="color:var(--text);">reset button</strong> on the Atom Lite (shown here) to trigger a fresh boot and see the full log below.
         </p>
       </div>
@@ -763,6 +783,29 @@
       espLog('Auto-connect didn\'t succeed — click Connect in Serial Monitor below (may need unplug/replug first).', 'serial-line-warn');
     }
   }
+</script>
+
+<script>
+  // ── Theme toggle ──
+  (function() {
+    const btn = document.getElementById('themeToggle');
+    const root = document.documentElement;
+    function updateIcon() {
+      btn.textContent = root.getAttribute('data-theme') === 'light' ? '🌙' : '☀️';
+    }
+    updateIcon();
+    btn.addEventListener('click', () => {
+      const isLight = root.getAttribute('data-theme') === 'light';
+      if (isLight) {
+        root.removeAttribute('data-theme');
+        localStorage.setItem('iotwx_theme', 'dark');
+      } else {
+        root.setAttribute('data-theme', 'light');
+        localStorage.setItem('iotwx_theme', 'light');
+      }
+      updateIcon();
+    });
+  })();
 </script>
 </body>
 </html>
