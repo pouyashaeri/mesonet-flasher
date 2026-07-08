@@ -553,7 +553,7 @@
           espLog(`Note: auto-reset failed (${resetErr.message}) — power-cycle the board manually.`, 'serial-line-warn');
         }
 
-        // release the port so the serial monitor below can reuse it
+        // release the port so the serial monitor can reuse it
         await new Promise(r => setTimeout(r, 300)); // let the reset sequence settle
         let released = false;
         try {
@@ -568,14 +568,20 @@
           await device.close();
           released = true;
         } catch (e) {
-          // device.readable may still be locked by esptool-js's internal reader
-          espLog(`Could not close port automatically: ${e.message}`, 'serial-line-warn');
+          if ((e.message || '').includes('already closed')) {
+            // transport.disconnect() already released it — this is success, not a failure
+            released = true;
+          } else {
+            espLog(`Could not close port automatically: ${e.message}`, 'serial-line-warn');
+          }
         }
+
         if (released) {
-          espLog('Port released — click Connect in Serial Monitor below.');
+          espLog('Port released — auto-connecting Serial Monitor…');
         } else {
-          espLog('Port may still be locked. If Connect fails below, unplug and replug the USB cable, then try Connect again.', 'serial-line-warn');
+          espLog('Port may still be locked — attempting to auto-connect anyway…', 'serial-line-warn');
         }
+        autoConnectMonitorWithRetry();
 
       } catch (e) {
         flashStatus.innerHTML = `<span class="status-badge badge-err">✗ ${e.message}</span>`;
@@ -622,18 +628,23 @@
       if (espAutoScroll) espMonOutput.scrollTop = espMonOutput.scrollHeight;
     }
 
-    espMonConnectBtn.addEventListener('click', async () => {
+    espMonConnectBtn.addEventListener('click', () => espConnectMonitor(false));
+
+    // core connect logic — silent=true skips the port picker dialog and any
+    // user-facing error messages, used for automatic post-flash attempts
+    async function espConnectMonitor(silent) {
       if (espSerialPort) {
+        if (silent) return true; // already connected, nothing to do
         try { await espSerialReader?.cancel(); } catch(e) {}
         try { await espSerialPort.close(); } catch(e) {}
         espSerialPort = null; espSerialReader = null;
         espMonConnectBtn.textContent = 'Connect';
         espMonConnectBtn.style.borderColor = ''; espMonConnectBtn.style.color = '';
-        return;
+        return false;
       }
-      if (espIsConnecting) return;
+      if (espIsConnecting) return false;
       espIsConnecting = true;
-      espMonConnectBtn.textContent = 'Connecting…';
+      if (!silent) espMonConnectBtn.textContent = 'Connecting…';
 
       const baud = parseInt(document.getElementById('espBaudRate').value);
 
@@ -648,8 +659,14 @@
           port = device;
           usedExistingHandle = true;
         } catch (e) {
-          espAppendLine(`Reusing flash port failed (${e.message}) — falling back to port picker…`);
+          if (!silent) espAppendLine(`Reusing flash port failed (${e.message}) — falling back to port picker…`);
         }
+      }
+
+      if (!port && silent) {
+        // don't pop the browser's port picker during a silent auto-connect attempt
+        espIsConnecting = false;
+        return false;
       }
 
       try {
@@ -663,45 +680,69 @@
         espMonConnectBtn.textContent = 'Disconnect';
         espMonConnectBtn.style.borderColor = 'var(--accent2)';
         espMonConnectBtn.style.color = 'var(--accent2)';
-        if (!usedExistingHandle) espMonOutput.innerHTML = '';
+        espMonOutput.innerHTML = '';
+        espAppendLine('[connected — waiting for output…]');
 
         const decoder = new TextDecoderStream();
         espSerialPort.readable.pipeTo(decoder.writable);
         const reader = decoder.readable.getReader();
         espSerialReader = reader;
 
-        let buffer = '';
-        try {
-          while (true) {
-            const { value, done } = await reader.read();
-            if (done) break;
-            buffer += value;
-            const lines = buffer.split('\n');
-            buffer = lines.pop();
-            lines.forEach(espAppendLine);
+        // read loop runs in the background — don't block the caller on it,
+        // so auto-connect can report success/failure immediately
+        (async () => {
+          let buffer = '';
+          try {
+            while (true) {
+              const { value, done } = await reader.read();
+              if (done) break;
+              buffer += value;
+              const lines = buffer.split('\n');
+              buffer = lines.pop();
+              lines.forEach(espAppendLine);
+            }
+          } catch(e) {
+          } finally {
+            reader.releaseLock();
+            try { await espSerialPort.close(); } catch(e) {}
+            espSerialPort = null; espSerialReader = null;
+            espMonConnectBtn.textContent = 'Connect';
+            espMonConnectBtn.style.borderColor = ''; espMonConnectBtn.style.color = '';
           }
-        } catch(e) {
-        } finally {
-          reader.releaseLock();
-          try { await espSerialPort.close(); } catch(e) {}
-          espSerialPort = null; espSerialReader = null;
-          espMonConnectBtn.textContent = 'Connect';
-          espMonConnectBtn.style.borderColor = ''; espMonConnectBtn.style.color = '';
-        }
+        })();
+
+        espIsConnecting = false;
+        return true;
+
       } catch(e) {
-        const div = document.createElement('div');
-        div.className = 'serial-line-error';
-        div.textContent = (e.message || '').includes('already open')
-          ? '⚠ Port still locked. Unplug and replug the USB cable, then click Connect again.'
-          : `Error: ${e.message}`;
-        espMonOutput.appendChild(div);
+        if (!silent) {
+          const div = document.createElement('div');
+          div.className = 'serial-line-error';
+          div.textContent = (e.message || '').includes('already open')
+            ? '⚠ Port still locked. Unplug and replug the USB cable, then click Connect again.'
+            : `Error: ${e.message}`;
+          espMonOutput.appendChild(div);
+        }
         espSerialPort = null;
         espMonConnectBtn.textContent = 'Connect';
         espMonConnectBtn.style.borderColor = ''; espMonConnectBtn.style.color = '';
-      } finally {
         espIsConnecting = false;
+        return false;
       }
-    });
+    }
+
+    // tries a few times, since the port may take a moment to release after reset
+    async function autoConnectMonitorWithRetry(maxAttempts = 6, delayMs = 500) {
+      for (let i = 0; i < maxAttempts; i++) {
+        const ok = await espConnectMonitor(true);
+        if (ok) {
+          espLog('Serial Monitor auto-connected.');
+          return;
+        }
+        await new Promise(r => setTimeout(r, delayMs));
+      }
+      espLog('Auto-connect didn\'t succeed — click Connect in Serial Monitor below (may need unplug/replug first).', 'serial-line-warn');
+    }
   }
 </script>
 </body>
