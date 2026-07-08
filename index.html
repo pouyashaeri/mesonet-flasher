@@ -111,6 +111,20 @@
     .device-fields { display: none; }
     .device-fields.active { display: block; }
 
+    /* ── Config upload dropzone ── */
+    .dropzone {
+      border: 1.5px dashed var(--border); border-radius: var(--radius);
+      padding: 18px; text-align: center; cursor: pointer;
+      transition: border-color 0.15s, background 0.15s; margin-bottom: 20px;
+    }
+    .dropzone:hover { border-color: #4d5560; }
+    .dropzone.dragover { border-color: var(--accent); background: rgba(88,166,255,0.06); }
+    .dropzone-icon { font-size: 20px; margin-bottom: 6px; }
+    .dropzone-text { font-size: 13px; color: var(--muted); }
+    .dropzone-text strong { color: var(--accent); }
+    .dropzone-filename { font-size: 12px; color: var(--accent2); margin-top: 8px; }
+    .dropzone-error { font-size: 12px; color: var(--danger); margin-top: 8px; }
+
     .submit-area { margin-top: 32px; display: flex; justify-content: flex-end; }
     .btn-primary {
       background: var(--accent); color: #0d1117; border: none; border-radius: 6px;
@@ -162,6 +176,14 @@
 
     <!-- ══════════════ RP2040 FIELDS ══════════════ -->
     <div class="device-fields active" id="rp2040Fields">
+
+      <div class="dropzone" id="rp2040Dropzone">
+        <input type="file" id="rp2040FileInput" accept=".json,application/json" style="display:none;" />
+        <div class="dropzone-icon">📄</div>
+        <div class="dropzone-text">Drag &amp; drop an RP2040 <span class="code" style="font-family:var(--font-mono);">config.json</span> here, or <strong>click to browse</strong></div>
+        <div class="dropzone-filename" id="rp2040DropFilename"></div>
+        <div class="dropzone-error" id="rp2040DropError"></div>
+      </div>
 
       <div class="section">
         <div class="section-header">
@@ -263,6 +285,14 @@
 
     <!-- ══════════════ ESP32 ATOM LITE FIELDS ══════════════ -->
     <div class="device-fields" id="esp32Fields">
+
+      <div class="dropzone" id="esp32Dropzone">
+        <input type="file" id="esp32FileInput" accept=".json,application/json" style="display:none;" />
+        <div class="dropzone-icon">📄</div>
+        <div class="dropzone-text">Drag &amp; drop an ESP32 Atom Lite <span class="code" style="font-family:var(--font-mono);">config.json</span> here, or <strong>click to browse</strong></div>
+        <div class="dropzone-filename" id="esp32DropFilename"></div>
+        <div class="dropzone-error" id="esp32DropError"></div>
+      </div>
 
       <div class="section">
         <div class="section-header">
@@ -547,6 +577,107 @@
 
     window.location.href = 'flash.html';
   });
+  // ── Config JSON upload (drag & drop + click-to-browse) ──
+  function setupDropzone(zoneId, inputId, filenameId, errorId, onParse) {
+    const zone = document.getElementById(zoneId);
+    const input = document.getElementById(inputId);
+    const filenameEl = document.getElementById(filenameId);
+    const errorEl = document.getElementById(errorId);
+
+    function showError(msg) {
+      errorEl.textContent = msg;
+      filenameEl.textContent = '';
+    }
+    function showSuccess(name) {
+      errorEl.textContent = '';
+      filenameEl.textContent = `✓ Loaded ${name}`;
+    }
+
+    function handleFile(file) {
+      if (!file) return;
+      if (!file.name.toLowerCase().endsWith('.json')) {
+        showError('Please upload a .json file.');
+        return;
+      }
+      const reader = new FileReader();
+      reader.onload = () => {
+        try {
+          const json = JSON.parse(reader.result);
+          onParse(json);
+          showSuccess(file.name);
+        } catch (e) {
+          showError(e.message || 'Could not parse this file.');
+        }
+      };
+      reader.onerror = () => showError('Could not read file.');
+      reader.readAsText(file);
+    }
+
+    zone.addEventListener('click', () => input.click());
+    input.addEventListener('change', () => handleFile(input.files[0]));
+
+    zone.addEventListener('dragover', e => {
+      e.preventDefault();
+      zone.classList.add('dragover');
+    });
+    zone.addEventListener('dragleave', () => zone.classList.remove('dragover'));
+    zone.addEventListener('drop', e => {
+      e.preventDefault();
+      zone.classList.remove('dragover');
+      handleFile(e.dataTransfer.files[0]);
+    });
+  }
+
+  // RP2040 config.json uses nested "station_info" / "radio" objects
+  function applyRp2040Config(json) {
+    if (!json.station_info && !json.radio) {
+      throw new Error('This doesn\'t look like an RP2040 config file (missing "station_info"/"radio").');
+    }
+    const si = json.station_info || {};
+    const ra = json.radio || {};
+    if (si.firstname !== undefined)     document.getElementById('firstname').value = si.firstname;
+    if (si.lastname !== undefined)      document.getElementById('lastname').value = si.lastname;
+    if (si.email !== undefined)         document.getElementById('email').value = si.email;
+    if (si.organization !== undefined)  document.getElementById('organization').value = si.organization;
+    if (si.latitude !== undefined)      document.getElementById('latitude').value = si.latitude;
+    if (si.longitude !== undefined)     document.getElementById('longitude').value = si.longitude;
+    if (si.altitude !== undefined)      document.getElementById('altitude').value = si.altitude;
+    if (si.sensor_transmit_delay !== undefined)  document.getElementById('sensor_transmit_delay').value = si.sensor_transmit_delay;
+    if (si.station_info_interval !== undefined)  document.getElementById('station_info_interval').value = si.station_info_interval;
+    if (ra.pong_timeout !== undefined)    document.getElementById('pong_timeout').value = ra.pong_timeout;
+    if (ra.connect_timeout !== undefined) document.getElementById('connect_timeout').value = ra.connect_timeout;
+  }
+
+  // ESP32 Atom Lite config.json is flat, with "iotwx_*" string-valued keys
+  function applyEsp32Config(json) {
+    if (json.iotwx_id === undefined && json.iotwx_mq_ip === undefined) {
+      throw new Error('This doesn\'t look like an ESP32 Atom Lite config file (missing "iotwx_id"/"iotwx_mq_ip").');
+    }
+    const map = {
+      esp_id:               'iotwx_id',
+      esp_topic:            'iotwx_topic',
+      esp_wifi_ssid:        'iotwx_wifi_ssid',
+      esp_wifi_pwd:         'iotwx_wifi_pwd',
+      esp_mq_ip:            'iotwx_mq_ip',
+      esp_mq_port:          'iotwx_mq_port',
+      esp_use_wifi:         'iotwx_use_wifi',
+      esp_publish_interval: 'iotwx_publish_interval',
+      esp_reset_interval:   'iotwx_reset_interval',
+      esp_timezone:         'iotwx_timezone',
+      esp_gpio_config:      'iotwx_gpio_config',
+      esp_max_frequency:    'iotwx_max_frequency',
+      esp_aspiration_time:  'iotwx_aspiration_spinup_time',
+    };
+    for (const [elId, jsonKey] of Object.entries(map)) {
+      if (json[jsonKey] !== undefined) {
+        const el = document.getElementById(elId);
+        if (el) el.value = json[jsonKey];
+      }
+    }
+  }
+
+  setupDropzone('rp2040Dropzone', 'rp2040FileInput', 'rp2040DropFilename', 'rp2040DropError', applyRp2040Config);
+  setupDropzone('esp32Dropzone', 'esp32FileInput', 'esp32DropFilename', 'esp32DropError', applyEsp32Config);
 </script>
 </body>
 </html>

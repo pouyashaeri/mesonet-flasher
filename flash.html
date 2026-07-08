@@ -98,7 +98,7 @@
   <div class="step done"><div class="step-num">✓</div>Configure</div>
   <div class="step-divider"></div>
   <div class="step active"><div class="step-num">2</div>Flash</div>
-  <a href="config.html" class="step-back">← Edit config</a>
+  <a href="index.html" class="step-back">← Edit config</a>
 </div>
 
 <main>
@@ -224,8 +224,8 @@
     <div class="how-to">
       <h3>Viewing boot output</h3>
       <div style="display:flex;gap:16px;align-items:flex-start;flex-wrap:wrap;">
-        <img src="assets/atomlite.jpg" alt="Reset button location on M5Stack Atom Lite" style="border-radius:6px;border:1px solid var(--border);width:140px;height:auto;object-fit:cover;flex-shrink:0;" />
-        <p style="font-size:13px;color:var(--muted);line-height:1.5;flex:1;min-width:200px;">
+        <img src="assets/atomlite.jpg" alt="Reset button location on M5Stack Atom Lite" style="border-radius:6px;border:1px solid var(--border);width: 280px;;height:auto;object-fit:cover;flex-shrink:0;" />
+        <p style="font-size:13px;color:var(--muted);line-height:1.5;flex:1;min-width:400px;">
           The Serial Monitor connects automatically after flashing, but the board's first boot usually finishes printing before the connection is ready. Press the <strong style="color:var(--text);">reset button</strong> on the Atom Lite (shown here) to trigger a fresh boot and see the full log below.
         </p>
       </div>
@@ -271,7 +271,7 @@
   if (!device || !config) {
     summaryEl.innerHTML = `
       <div class="no-config">
-        ⚠ No config found. <a href="config.html" style="color:var(--warn);margin-left:6px;">← Go back and fill in your details</a>
+        ⚠ No config found. <a href="index.html" style="color:var(--warn);margin-left:6px;">← Go back and fill in your details</a>
       </div>`;
   } else if (device === 'rp2040') {
     pageSub.textContent = 'Download your personalised firmware and drag it onto the board.';
@@ -284,7 +284,7 @@
           <div class="config-name">${si.firstname} ${si.lastname} — ${si.organization || 'No org'}</div>
           <div class="config-email">${si.email} · ${si.latitude || 0}°, ${si.longitude || 0}°</div>
         </div>
-        <a href="config.html" class="config-edit">Edit →</a>
+        <a href="index.html" class="config-edit">Edit →</a>
       </div>`;
     document.getElementById('rp2040Flow').classList.add('active');
     initRp2040Flow();
@@ -298,7 +298,7 @@
           <div class="config-name">${config.id}</div>
           <div class="config-email">${config.topic} · broker ${config.mq_ip}:${config.mq_port}</div>
         </div>
-        <a href="config.html" class="config-edit">Edit →</a>
+        <a href="index.html" class="config-edit">Edit →</a>
       </div>`;
     document.getElementById('esp32Flow').classList.add('active');
     initEsp32Flow();
