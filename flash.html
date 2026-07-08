@@ -515,7 +515,7 @@
         const resp = await fetch('firmware/mesonet_esp32.bin?v=' + Date.now());
         if (!resp.ok) throw new Error(`Firmware not found (${resp.status})`);
         const fwBuf = await resp.arrayBuffer();
-        const patchedBuf = patchEsp32Bin(fwBuf, config);
+        const patchedBuf = await patchEsp32Bin(fwBuf, config);
 
         const u8 = new Uint8Array(patchedBuf);
         let binStr = '';

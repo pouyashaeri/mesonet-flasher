@@ -28,6 +28,66 @@ const PLACEHOLDERS = {
   aspiration_time:   { marker: '10\0',          maxLen: 4, isNumeric: true, defaultValue: '10' },
 };
 
+function readU32LE(u8, off) {
+  return (u8[off] | (u8[off+1]<<8) | (u8[off+2]<<16) | (u8[off+3]<<24)) >>> 0;
+}
+
+/**
+ * ESP32 app images embed a checksum (XOR of all segment data bytes, seeded
+ * with 0xEF) and, if the header's hash_appended flag is set, a trailing
+ * SHA-256 over the whole image. The ROM bootloader verifies both on every
+ * boot — any byte patch invalidates them, so they must be recomputed or the
+ * chip will reboot-loop with "esp_image: Checksum failed".
+ *
+ * Image layout (esp-idf esp_app_format.h):
+ *   offset 0:  magic byte, must be 0xE9
+ *   offset 1:  segment_count
+ *   offset 23: hash_appended (1 if a trailing SHA-256 is present)
+ *   offset 24: first segment header (4 bytes load_addr + 4 bytes length),
+ *              followed by `length` bytes of data, repeated segment_count times
+ *   then:      zero-padding until (offset % 16 === 15), then 1 checksum byte
+ *   then:      (if hash_appended) 32-byte SHA-256 over everything up to and
+ *              including the checksum byte
+ */
+async function recalcEsp32ImageChecksum(u8) {
+  if (u8[0] !== 0xE9) {
+    throw new Error('Patched buffer does not look like a valid ESP32 app image (bad magic byte at offset 0).');
+  }
+  const segmentCount = u8[1];
+  const hashAppended = u8[23] === 1;
+
+  let offset = 24; // header size
+  let checksum = 0xEF;
+
+  for (let i = 0; i < segmentCount; i++) {
+    const segLen = readU32LE(u8, offset + 4);
+    offset += 8; // skip segment header (load_addr + length)
+    for (let j = 0; j < segLen; j++) {
+      checksum ^= u8[offset + j];
+    }
+    offset += segLen;
+  }
+
+  let checksumOffset = offset;
+  while (checksumOffset % 16 !== 15) checksumOffset++;
+  u8[checksumOffset] = checksum;
+
+  if (hashAppended) {
+    const hashOffset = checksumOffset + 1;
+    const dataToHash = u8.slice(0, hashOffset);
+    if (!crypto?.subtle) {
+      throw new Error(
+        'Web Crypto (crypto.subtle) is unavailable — this page must be served ' +
+        'over HTTPS or localhost for SHA-256 recalculation to work.'
+      );
+    }
+    const digest = await crypto.subtle.digest('SHA-256', dataToHash);
+    u8.set(new Uint8Array(digest), hashOffset);
+  }
+
+  return u8;
+}
+
 function findMarker(u8, markerStr) {
   const enc = new TextEncoder();
   const needle = enc.encode(markerStr);
@@ -72,7 +132,7 @@ function patchField(u8, field, value, marker, maxLen) {
  * mq_ip, mq_port, topic, gpio_config, use_wifi, publish_interval,
  * reset_interval, timezone, max_frequency, aspiration_time).
  */
-export function patchEsp32Bin(fwBuf, configObj) {
+export async function patchEsp32Bin(fwBuf, configObj) {
   const u8 = new Uint8Array(fwBuf.slice(0));
 
   // find all markers first, so we fail fast before writing anything
@@ -93,6 +153,10 @@ export function patchEsp32Bin(fwBuf, configObj) {
     const value = String(configObj[field] ?? defaultValue ?? '');
     patchField(u8, field, value, marker, maxLen);
   }
+
+  // MUST run after all byte patches — recomputes the checksum (and SHA-256,
+  // if present) that the ROM bootloader verifies on every boot
+  await recalcEsp32ImageChecksum(u8);
 
   return u8.buffer;
 }
