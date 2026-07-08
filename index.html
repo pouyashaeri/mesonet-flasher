@@ -6,9 +6,9 @@
   <title>IoTwx Mesonet — Station Setup</title>
   <script>
     (function() {
-      var saved = localStorage.getItem('iotwx_theme');
-      var theme = saved || (window.matchMedia('(prefers-color-scheme: light)').matches ? 'light' : 'dark');
-      if (theme === 'light') document.documentElement.setAttribute('data-theme', 'light');
+      if (localStorage.getItem('iotwx_theme') === 'light') {
+        document.documentElement.setAttribute('data-theme', 'light');
+      }
     })();
   </script>
   <style>
