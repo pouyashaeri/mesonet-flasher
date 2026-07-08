@@ -683,6 +683,15 @@
         espMonOutput.innerHTML = '';
         espAppendLine('[connected — waiting for output…]');
 
+        // Ensure DTR/RTS are released — esptool-js's reset pulse toggles RTS to
+        // reboot the chip; if it isn't explicitly deasserted afterward, the
+        // ESP32 can be left held in reset with zero output ever appearing.
+        try {
+          await espSerialPort.setSignals({ dataTerminalReady: false, requestToSend: false });
+        } catch (e) {
+          espAppendLine(`[warn]: could not set DTR/RTS — ${e.message}`);
+        }
+
         const decoder = new TextDecoderStream();
         espSerialPort.readable.pipeTo(decoder.writable);
         const reader = decoder.readable.getReader();
