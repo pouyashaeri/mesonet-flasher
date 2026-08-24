@@ -797,9 +797,18 @@
 
 <script>
   (function () {
-    if (window.parent === window) return; // standalone visit, not embedded — do nothing
+    if (window.parent === window) return; // standalone visit, not embedded
 
-    var PARENT_ORIGIN = "https://ncar.github.io"; // the docs site's origin
+    var ALLOWED_PARENT_ORIGINS = [
+      "https://ncar.github.io",   // production docs site
+      "http://127.0.0.1:8000",    // local mkdocs serve
+      "http://localhost:8000"     // local mkdocs serve, alt hostname
+    ];
+
+    var referrerOrigin = document.referrer ? new URL(document.referrer).origin : null;
+    var PARENT_ORIGIN = ALLOWED_PARENT_ORIGINS.indexOf(referrerOrigin) !== -1 ? referrerOrigin : null;
+
+    if (!PARENT_ORIGIN) return; // unrecognized embedder — don't send height anywhere
 
     function reportHeight() {
       var height = Math.max(
@@ -811,7 +820,7 @@
 
     window.addEventListener("load", function () {
       reportHeight();
-      setTimeout(reportHeight, 300); // catch late image/font reflow
+      setTimeout(reportHeight, 300);
     });
     window.addEventListener("resize", reportHeight);
 
