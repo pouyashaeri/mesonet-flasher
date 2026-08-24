@@ -839,6 +839,16 @@
 
     new ResizeObserver(reportHeight).observe(document.documentElement);
   })();
+
+  function reportHeight() {
+    var height = Math.max(
+      document.documentElement.scrollHeight,
+      document.body.scrollHeight
+    );
+    console.log("[mesonet-resize]", height, "→", PARENT_ORIGIN); // ← temporary
+    window.parent.postMessage({ type: "mesonet-flasher-resize", height: height }, PARENT_ORIGIN);
+  }
+  
 </script>
 
 
