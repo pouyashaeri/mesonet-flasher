@@ -794,5 +794,30 @@
     });
   })();
 </script>
+
+<script>
+  (function () {
+    if (window.parent === window) return; // standalone visit, not embedded — do nothing
+
+    var PARENT_ORIGIN = "https://ncar.github.io"; // the docs site's origin
+
+    function reportHeight() {
+      var height = Math.max(
+        document.documentElement.scrollHeight,
+        document.body.scrollHeight
+      );
+      window.parent.postMessage({ type: "mesonet-flasher-resize", height: height }, PARENT_ORIGIN);
+    }
+
+    window.addEventListener("load", function () {
+      reportHeight();
+      setTimeout(reportHeight, 300); // catch late image/font reflow
+    });
+    window.addEventListener("resize", reportHeight);
+
+    new ResizeObserver(reportHeight).observe(document.documentElement);
+  })();
+</script>
+
 </body>
 </html>
