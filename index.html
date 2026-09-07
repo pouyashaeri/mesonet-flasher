@@ -213,7 +213,7 @@
 
 <main>
   <div class="page-title">Configure your station</div>
-  <p class="page-sub">Pick your hardware, fill in your details, and your config gets baked directly into the firmware — no app or server needed after flashing.</p>
+  <p class="page-sub">Pick your hardware, fill in your details, and complete setup directly in the browser — no app or server required.</p>
 
   <!-- Device picker -->
   <div class="device-picker">
@@ -221,7 +221,7 @@
       <div class="device-radio"></div>
       <div class="device-icon">📡</div>
       <div class="device-name">RP2040 + RFM95 LoRa</div>
-      <div class="device-desc">Adafruit Feather RP2040 RFM95 mesonet relay/sensor node. Flashed via drag-and-drop.</div>
+      <div class="device-desc">Adafruit Feather RP2040 RFM95 node. The browser flashes unchanged firmware, then saves your config separately in LittleFS.</div>
     </div>
     <div class="device-card" id="pickEsp32" data-device="esp32">
       <div class="device-radio"></div>
@@ -254,20 +254,20 @@
           <div class="field-row">
             <div class="field">
               <label>First name <span class="req">*</span></label>
-              <input type="text" id="firstname" placeholder="e.g. Jane" maxlength="20" />
+              <input type="text" id="firstname" placeholder="e.g. Jane" maxlength="47" />
             </div>
             <div class="field">
               <label>Last name <span class="req">*</span></label>
-              <input type="text" id="lastname" placeholder="e.g. Smith" maxlength="20" />
+              <input type="text" id="lastname" placeholder="e.g. Smith" maxlength="47" />
             </div>
           </div>
           <div class="field">
             <label>Email <span class="req">*</span></label>
-            <input type="email" id="email" placeholder="your@email.com" maxlength="48" />
+            <input type="email" id="email" placeholder="your@email.com" maxlength="63" />
           </div>
           <div class="field">
             <label>Organization</label>
-            <input type="text" id="organization" placeholder="e.g. your University / Lab" maxlength="20" />
+            <input type="text" id="organization" placeholder="e.g. your University / Lab" maxlength="63" />
           </div>
         </div>
       </div>
@@ -290,7 +290,7 @@
             </div>
             <div class="field">
               <label>Altitude (m)</label>
-              <input type="number" id="altitude" placeholder="e.g. 1650" step="1" />
+              <input type="number" id="altitude" placeholder="e.g. 1650" step="1" min="-500" max="10000" />
             </div>
           </div>
           <div class="field">
@@ -316,23 +316,23 @@
               <div class="field-row">
                 <div class="field">
                   <label>Sensor transmit delay (ms)</label>
-                  <input type="number" id="sensor_transmit_delay" value="60000" min="5000" />
+                  <input type="number" id="sensor_transmit_delay" value="60000" min="1000" max="604800000" />
                   <span class="field-hint">How often sensors publish</span>
                 </div>
                 <div class="field">
                   <label>Station info interval (ms)</label>
-                  <input type="number" id="station_info_interval" value="86400000" min="60000" />
+                  <input type="number" id="station_info_interval" value="86400000" min="60000" max="604800000" />
                   <span class="field-hint">Default 24 h</span>
                 </div>
               </div>
               <div class="field-row">
                 <div class="field">
                   <label>Pong timeout (ms)</label>
-                  <input type="number" id="pong_timeout" value="5000" min="1000" />
+                  <input type="number" id="pong_timeout" value="5000" min="100" max="600000" />
                 </div>
                 <div class="field">
                   <label>Connect timeout (ms)</label>
-                  <input type="number" id="connect_timeout" value="900000" min="60000" />
+                  <input type="number" id="connect_timeout" value="900000" min="1000" max="86400000" />
                 </div>
               </div>
             </div>
@@ -560,49 +560,134 @@
     }
   }
 
+  function validateConfigText(value, label, minBytes, maxBytes) {
+    const bytes = new TextEncoder().encode(value).byteLength;
+    if (bytes < minBytes || bytes > maxBytes) {
+      throw new Error(`${label} must be between ${minBytes} and ${maxBytes} UTF-8 bytes.`);
+    }
+    if (/[\x00-\x1F\x7F]/.test(value)) {
+      throw new Error(`${label} cannot contain control characters.`);
+    }
+    return value;
+  }
+
+  function readConfigNumber(id, label, fallback, minimum, maximum) {
+    const raw = document.getElementById(id).value.trim();
+    const value = raw === '' ? fallback : Number(raw);
+    if (!Number.isFinite(value) || value < minimum || value > maximum) {
+      throw new Error(`${label} must be between ${minimum} and ${maximum}.`);
+    }
+    return value;
+  }
+
   // ── Submit ──
   document.getElementById('configForm').addEventListener('submit', e => {
     e.preventDefault();
 
     if (selectedDevice === 'rp2040') {
-      const firstname = document.getElementById('firstname').value.trim();
-      const lastname  = document.getElementById('lastname').value.trim();
-      const email     = document.getElementById('email').value.trim();
-      if (!firstname || !lastname || !email) {
-        alert('Please fill in First name, Last name, and Email.');
+      try {
+        const firstname = validateConfigText(
+          document.getElementById('firstname').value.trim(),
+          'First name',
+          1,
+          47
+        );
+        const lastname = validateConfigText(
+          document.getElementById('lastname').value.trim(),
+          'Last name',
+          1,
+          47
+        );
+        const email = validateConfigText(
+          document.getElementById('email').value.trim(),
+          'Email',
+          3,
+          63
+        );
+        const organization = validateConfigText(
+          document.getElementById('organization').value.trim(),
+          'Organization',
+          0,
+          63
+        );
+
+        if (!email.includes('@')) {
+          throw new Error('Enter a valid email address.');
+        }
+
+        const config = {
+          schema_version: 1,
+          radio: {
+            overload_threshold: 0.85,
+            station_relay_midpoint: 10,
+            station_relay_steepness: 0.2,
+            station_sensor_midpoint: 5,
+            station_sensor_steepness: 0.5,
+            station_relay_weight: 0.7,
+            station_sensor_weight: 0.3,
+            score_rssi_weight: 0.35,
+            score_load_weight: 0.35,
+            score_type_weight: 0.2,
+            score_relay_weight: 0.1,
+            score_relay_decay: 1.0,
+            pong_timeout: readConfigNumber(
+              'pong_timeout',
+              'Pong timeout',
+              5000,
+              100,
+              600000
+            ),
+            connect_timeout: readConfigNumber(
+              'connect_timeout',
+              'Connect timeout',
+              900000,
+              1000,
+              86400000
+            ),
+          },
+          station_info: {
+            firstname,
+            lastname,
+            email,
+            organization,
+            device: 'adafruit RP2040 RFM95 LoRa',
+            latitude: readConfigNumber('latitude', 'Latitude', 0, -90, 90),
+            longitude: readConfigNumber('longitude', 'Longitude', 0, -180, 180),
+            altitude: readConfigNumber('altitude', 'Altitude', 0, -500, 10000),
+            station_info_interval: readConfigNumber(
+              'station_info_interval',
+              'Station info interval',
+              86400000,
+              60000,
+              604800000
+            ),
+            fixed_deployment: false,
+            gps_fixed_interval: 43200000,
+            sensor_transmit_delay: readConfigNumber(
+              'sensor_transmit_delay',
+              'Sensor transmit delay',
+              60000,
+              1000,
+              604800000
+            ),
+          }
+        };
+
+        const commandBytes = new TextEncoder().encode(
+          `IOTWX_CONFIG ${JSON.stringify(config)}`
+        ).byteLength;
+        if (commandBytes > 2048) {
+          throw new Error('The complete RP2040 configuration exceeds 2048 bytes.');
+        }
+
+        sessionStorage.setItem(
+          'iotwx_setup',
+          JSON.stringify({ device: 'rp2040', config })
+        );
+      } catch (error) {
+        alert(error.message);
         return;
       }
-      const config = {
-        radio: {
-          overload_threshold: 0.85,
-          station_relay_midpoint: 10,
-          station_relay_steepness: 0.2,
-          station_sensor_midpoint: 5,
-          station_sensor_steepness: 0.5,
-          station_relay_weight: 0.7,
-          station_sensor_weight: 0.3,
-          score_rssi_weight: 0.35,
-          score_load_weight: 0.35,
-          score_type_weight: 0.2,
-          score_relay_weight: 0.1,
-          score_relay_decay: 1.0,
-          pong_timeout:    parseInt(document.getElementById('pong_timeout').value)    || 5000,
-          connect_timeout: parseInt(document.getElementById('connect_timeout').value) || 900000,
-        },
-        station_info: {
-          firstname, lastname, email,
-          organization: document.getElementById('organization').value.trim(),
-          device:       'adafruit RP2040 RFM95 LoRa',
-          latitude:     parseFloat(document.getElementById('latitude').value)  || 0.0,
-          longitude:    parseFloat(document.getElementById('longitude').value) || 0.0,
-          altitude:     parseFloat(document.getElementById('altitude').value)  || 0.0,
-          station_info_interval:  parseInt(document.getElementById('station_info_interval').value)  || 86400000,
-          fixed_deployment: false,
-          gps_fixed_interval: 43200000,
-          sensor_transmit_delay: parseInt(document.getElementById('sensor_transmit_delay').value) || 60000,
-        }
-      };
-      sessionStorage.setItem('iotwx_setup', JSON.stringify({ device: 'rp2040', config }));
 
     } else {
       const id       = document.getElementById('esp_id').value.trim();
@@ -826,15 +911,6 @@
 
     new ResizeObserver(reportHeight).observe(document.documentElement);
   })();
-
-  function reportHeight() {
-    var height = Math.max(
-      document.documentElement.scrollHeight,
-      document.body.scrollHeight
-    );
-    console.log("[mesonet-resize]", height, "→", PARENT_ORIGIN); // ← temporary
-    window.parent.postMessage({ type: "mesonet-flasher-resize", height: height }, PARENT_ORIGIN);
-  }
 </script>
 
 </body>

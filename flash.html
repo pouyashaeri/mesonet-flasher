@@ -123,11 +123,11 @@
 
 <main>
   <div class="page-title">Flash your station</div>
-  <p class="page-sub" id="pageSub">Your config is baked directly into the firmware — no app or server needed after flashing.</p>
+  <p class="page-sub" id="pageSub">Complete firmware and configuration setup directly in your browser.</p>
 
   <div id="configSummary"></div>
 
-  <!-- ══════════════ RP2040 FLOW (UF2 drag & drop) ══════════════ -->
+  <!-- ══════════════ RP2040 FLOW (unchanged UF2 + LittleFS config) ══════════════ -->
   <div class="device-flow" id="rp2040Flow">
     <div class="flash-steps">
       <div class="flash-step active" id="rp_step1">
@@ -153,11 +153,11 @@
       <div class="flash-step" id="rp_step2">
         <div class="fstep-num">2</div>
         <div class="fstep-body">
-          <div class="fstep-title">Download firmware</div>
-          <div class="fstep-desc">Builds a single <span class="code">.uf2</span> with your config baked in. One file, one drag, done.</div>
+          <div class="fstep-title">Flash unchanged firmware</div>
+          <div class="fstep-desc">Click below and select the <span class="code">RPI-RP2</span> drive. The browser writes the official firmware directly—there is no manual download or binary patching.</div>
           <div class="fstep-action">
-            <button class="btn-primary" id="downloadBtn" disabled>⬇ Build &amp; Download mesonet.uf2</button>
-            <div id="downloadStatus" style="margin-top:10px;font-size:13px;color:var(--muted);"></div>
+            <button class="btn-primary" id="rpFlashBtn" disabled>⚡ Select RPI-RP2 &amp; flash</button>
+            <div id="rpFlashStatus" style="margin-top:10px;font-size:13px;color:var(--muted);"></div>
           </div>
         </div>
       </div>
@@ -165,32 +165,27 @@
       <div class="flash-step" id="rp_step3">
         <div class="fstep-num">3</div>
         <div class="fstep-body">
-          <div class="fstep-title">Drag onto RPI-RP2</div>
-          <div class="fstep-desc">Drag <span class="code">mesonet.uf2</span> onto the <span class="code">RPI-RP2</span> drive. The drive disappears when flashing completes and your board reboots with your config.</div>
+          <div class="fstep-title">Save configuration to LittleFS</div>
+          <div class="fstep-desc">Wait for the <span class="code">RPI-RP2</span> drive to disappear and the board to restart. Then click below, select the RP2040 serial device, and the browser will send the form values to <span class="code">/config.json</span>.</div>
+          <div class="fstep-action">
+            <button class="btn-primary" id="rpProvisionBtn" disabled>🔌 Connect &amp; save configuration</button>
+            <div id="rpProvisionStatus" style="margin-top:10px;font-size:13px;color:var(--muted);"></div>
+          </div>
         </div>
       </div>
     </div>
 
     <div class="serial-monitor">
       <div class="serial-header">
-        <span class="serial-title">📟 Serial Monitor</span>
+        <span class="serial-title">📟 RP2040 provisioning log</span>
         <div class="serial-controls">
-          <select id="baudRate">
-            <option value="9600">9600</option>
-            <option value="19200">19200</option>
-            <option value="38400">38400</option>
-            <option value="57600">57600</option>
-            <option value="115200" selected>115200</option>
-            <option value="230400">230400</option>
-          </select>
           <button class="btn-secondary" id="autoScrollBtn" title="Toggle auto-scroll" style="padding:5px 10px;font-size:11px;border-color:var(--accent2);color:var(--accent2);">⬇ Auto</button>
           <button class="btn-secondary" id="copySerial" title="Copy all output" style="padding:5px 10px;font-size:11px;">⎘ Copy</button>
           <button class="btn-secondary" id="clearSerial" style="padding:5px 10px;font-size:11px;">✕ Clear</button>
-          <button class="btn-secondary" id="connectSerial">Connect</button>
         </div>
       </div>
       <div class="serial-output" id="serialOutput">
-        <span class="serial-hint">Connect your board via USB and click Connect to see live output.</span>
+        <span class="serial-hint">Flashing and configuration messages will appear here.</span>
       </div>
     </div>
   </div>
@@ -278,7 +273,13 @@
 </main>
 
 <script type="module">
-  import { buildCombinedUF2 } from './js/patch-uf2.js?v=15';
+  import {
+    fetchRp2040Firmware,
+    flashRP2040viaFilesystem,
+    getRp2040BrowserError,
+    provisionRP2040,
+    verifyRP2040Config,
+  } from './js/rp2040-flasher.js?v=2';
   import { patchEsp32Bin } from './js/patch-esp32-bin.js';
 
   const setup  = JSON.parse(sessionStorage.getItem('iotwx_setup') || '{}');
@@ -287,6 +288,13 @@
 
   const summaryEl = document.getElementById('configSummary');
   const pageSub   = document.getElementById('pageSub');
+  const escapeHtml = value => String(value ?? '').replace(/[&<>"']/g, character => ({
+    '&': '&amp;',
+    '<': '&lt;',
+    '>': '&gt;',
+    '"': '&quot;',
+    "'": '&#039;',
+  })[character]);
 
   if (!device || !config) {
     summaryEl.innerHTML = `
@@ -294,15 +302,15 @@
         ⚠ No config found. <a href="index.html" style="color:var(--warn);margin-left:6px;">← Go back and fill in your details</a>
       </div>`;
   } else if (device === 'rp2040') {
-    pageSub.textContent = 'Download your personalised firmware and drag it onto the board.';
+    pageSub.textContent = 'Flash one unchanged firmware image, then save your configuration separately in LittleFS.';
     const si = config.station_info;
     summaryEl.innerHTML = `
       <span class="device-badge">📡 RP2040 LoRa</span>
       <div class="config-card">
         <div class="config-dot"></div>
         <div class="config-info">
-          <div class="config-name">${si.firstname} ${si.lastname} — ${si.organization || 'No org'}</div>
-          <div class="config-email">${si.email} · ${si.latitude || 0}°, ${si.longitude || 0}°</div>
+          <div class="config-name">${escapeHtml(si.firstname)} ${escapeHtml(si.lastname)} — ${escapeHtml(si.organization || 'No org')}</div>
+          <div class="config-email">${escapeHtml(si.email)} · ${escapeHtml(si.latitude || 0)}°, ${escapeHtml(si.longitude || 0)}°</div>
         </div>
         <a href="index.html" class="config-edit">Edit →</a>
       </div>`;
@@ -315,8 +323,8 @@
       <div class="config-card">
         <div class="config-dot"></div>
         <div class="config-info">
-          <div class="config-name">${config.id}</div>
-          <div class="config-email">${config.topic} · broker ${config.mq_ip}:${config.mq_port}</div>
+          <div class="config-name">${escapeHtml(config.id)}</div>
+          <div class="config-email">${escapeHtml(config.topic)} · broker ${escapeHtml(config.mq_ip)}:${escapeHtml(config.mq_port)}</div>
         </div>
         <a href="index.html" class="config-edit">Edit →</a>
       </div>`;
@@ -330,51 +338,44 @@
     const step2 = document.getElementById('rp_step2');
     const step3 = document.getElementById('rp_step3');
     const bootselStatus = document.getElementById('bootselStatus');
-    const downloadBtn   = document.getElementById('downloadBtn');
-
-    bootselStatus.innerHTML = `<button class="btn-secondary" id="confirmBootsel">✓ RPI-RP2 is visible — continue</button>`;
-    document.getElementById('confirmBootsel').addEventListener('click', () => {
-      bootselStatus.innerHTML = `<span class="status-badge badge-ok">✓ Board in BOOTSEL mode</span>`;
-      step1.classList.remove('active');
-      step1.classList.add('complete');
-      step2.classList.add('active');
-      downloadBtn.disabled = false;
-    });
-
-    downloadBtn.addEventListener('click', async () => {
-      const statusEl = document.getElementById('downloadStatus');
-      downloadBtn.disabled = true;
-      downloadBtn.innerHTML = `<span class="spinner"></span> Building…`;
-      statusEl.textContent = '';
-
-      try {
-        const buf = await buildCombinedUF2(config);
-        const blob = new Blob([buf], { type: 'application/octet-stream' });
-        const url  = URL.createObjectURL(blob);
-        const a    = document.createElement('a');
-        a.href = url; a.download = 'mesonet.uf2'; a.click();
-        URL.revokeObjectURL(url);
-
-        downloadBtn.innerHTML = `✓ Downloaded — drag onto RPI-RP2`;
-        downloadBtn.style.background = 'var(--accent2)';
-        statusEl.innerHTML = `<span class="status-badge badge-ok">mesonet.uf2 ready</span>`;
-        step2.classList.remove('active');
-        step2.classList.add('complete');
-        step3.classList.add('active');
-      } catch(err) {
-        downloadBtn.disabled = false;
-        downloadBtn.innerHTML = `⬇ Build &amp; Download mesonet.uf2`;
-        statusEl.innerHTML = `<span class="status-badge badge-err">✗ ${err.message}</span>`;
-      }
-    });
-
-    // Serial monitor (Web Serial passthrough for viewing boot logs)
-    let serialPort = null, serialReader = null, isConnecting = false, autoScroll = true;
+    const flashBtn = document.getElementById('rpFlashBtn');
+    const flashStatus = document.getElementById('rpFlashStatus');
+    const provisionBtn = document.getElementById('rpProvisionBtn');
+    const provisionStatus = document.getElementById('rpProvisionStatus');
     const output = document.getElementById('serialOutput');
-    const connectBtn = document.getElementById('connectSerial');
     const autoScrollBtn = document.getElementById('autoScrollBtn');
     const copyBtn = document.getElementById('copySerial');
     const clearBtn = document.getElementById('clearSerial');
+    let autoScroll = true;
+
+    function setStatus(element, kind, message) {
+      element.replaceChildren();
+      const badge = document.createElement('span');
+      badge.className = `status-badge badge-${kind}`;
+      badge.textContent = message;
+      element.appendChild(badge);
+    }
+
+    function appendLine(line, className = '') {
+      if (!line.trim()) return;
+      if (output.querySelector('.serial-hint')) output.replaceChildren();
+
+      const div = document.createElement('div');
+      if (className) {
+        div.className = className;
+      } else if (line.includes('ERROR') || line.includes('[error]')) {
+        div.className = 'serial-line-error';
+      } else if (line.includes('[warn]')) {
+        div.className = 'serial-line-warn';
+      } else if (line.includes('[debug]')) {
+        div.className = 'serial-line-debug';
+      } else {
+        div.className = 'serial-line-info';
+      }
+      div.textContent = line;
+      output.appendChild(div);
+      if (autoScroll) output.scrollTop = output.scrollHeight;
+    }
 
     autoScrollBtn.addEventListener('click', () => {
       autoScroll = !autoScroll;
@@ -391,82 +392,117 @@
       });
     });
     clearBtn.addEventListener('click', () => {
-      output.innerHTML = '<span class="serial-hint">Connect your board via USB and click Connect to see live output.</span>';
+      output.innerHTML = '<span class="serial-hint">Flashing and configuration messages will appear here.</span>';
     });
-    function appendLine(line) {
-      if (!line.trim()) return;
-      const div = document.createElement('div');
-      if      (line.includes('[info]'))  div.className = 'serial-line-info';
-      else if (line.includes('[debug]')) div.className = 'serial-line-debug';
-      else if (line.includes('[warn]'))  div.className = 'serial-line-warn';
-      else if (line.includes('[error]')) div.className = 'serial-line-error';
-      div.textContent = line;
-      output.appendChild(div);
-      if (autoScroll) output.scrollTop = output.scrollHeight;
+
+    const browserError = getRp2040BrowserError();
+    if (browserError) {
+      setStatus(flashStatus, 'err', `✗ ${browserError}`);
+      appendLine(`[error]: ${browserError}`, 'serial-line-error');
+
+      if (window.top !== window.self) {
+        const openButton = document.createElement('button');
+        openButton.type = 'button';
+        openButton.className = 'btn-secondary';
+        openButton.style.marginTop = '10px';
+        openButton.textContent = '↗ Open flasher in new tab';
+        openButton.addEventListener('click', () => {
+          window.open(window.location.href, '_blank');
+        });
+        flashStatus.appendChild(document.createElement('br'));
+        flashStatus.appendChild(openButton);
+      }
+      return;
     }
 
-    connectBtn.addEventListener('click', async () => {
-      if (serialPort) {
-        try { await serialReader?.cancel(); } catch(e) {}
-        try { await serialPort.close(); } catch(e) {}
-        serialPort = null; serialReader = null;
-        connectBtn.textContent = 'Connect';
-        connectBtn.style.borderColor = ''; connectBtn.style.color = '';
-        return;
-      }
-      if (isConnecting) return;
-      isConnecting = true;
-      connectBtn.textContent = 'Connecting…';
+    bootselStatus.innerHTML = `<button class="btn-secondary" id="confirmBootsel">✓ RPI-RP2 is visible — continue</button>`;
+    document.getElementById('confirmBootsel').addEventListener('click', () => {
+      setStatus(bootselStatus, 'ok', '✓ Board is in BOOTSEL mode');
+      step1.classList.remove('active');
+      step1.classList.add('complete');
+      step2.classList.add('active');
+      flashBtn.disabled = false;
+    });
+
+    flashBtn.addEventListener('click', async () => {
+      flashBtn.disabled = true;
+      flashBtn.innerHTML = `<span class="spinner"></span> Loading firmware…`;
+      setStatus(flashStatus, 'wait', 'Loading and validating the unchanged UF2…');
+      appendLine('[info]: Loading unchanged RP2040 firmware');
 
       try {
-        const port = await navigator.serial.requestPort();
-        try { await port.close(); } catch(e) {}
-        const baud = parseInt(document.getElementById('baudRate').value);
-        await port.open({ baudRate: baud });
+        const firmware = await fetchRp2040Firmware();
+        flashBtn.innerHTML = `<span class="spinner"></span> Select RPI-RP2…`;
+        setStatus(flashStatus, 'wait', 'Select the RPI-RP2 drive in the folder picker.');
 
-        serialPort = port;
-        connectBtn.textContent = 'Disconnect';
-        connectBtn.style.borderColor = 'var(--accent2)';
-        connectBtn.style.color = 'var(--accent2)';
-        output.innerHTML = '';
+        await flashRP2040viaFilesystem(firmware, (written, total) => {
+          if (written === total) appendLine('[info]: UF2 write completed');
+        });
 
-        const decoder = new TextDecoderStream();
-        serialPort.readable.pipeTo(decoder.writable);
-        const reader = decoder.readable.getReader();
-        serialReader = reader;
+        flashBtn.innerHTML = '✓ Firmware flashed';
+        flashBtn.style.background = 'var(--accent2)';
+        setStatus(flashStatus, 'ok', '✓ Firmware written; the board is restarting');
+        step2.classList.remove('active');
+        step2.classList.add('complete');
+        step3.classList.add('active');
 
-        let buffer = '';
-        try {
-          while (true) {
-            const { value, done } = await reader.read();
-            if (done) break;
-            buffer += value;
-            const lines = buffer.split('\n');
-            buffer = lines.pop();
-            lines.forEach(appendLine);
-          }
-        } catch(e) {
-        } finally {
-          reader.releaseLock();
-          try { await serialPort.close(); } catch(e) {}
-          serialPort = null; serialReader = null;
-          connectBtn.textContent = 'Connect';
-          connectBtn.style.borderColor = ''; connectBtn.style.color = '';
+        setStatus(provisionStatus, 'wait', 'Wait for the RP2040 serial device to appear.');
+        await new Promise(resolve => setTimeout(resolve, 2500));
+        provisionBtn.disabled = false;
+        setStatus(provisionStatus, 'wait', 'Ready—connect to the restarted RP2040.');
+      } catch (error) {
+        flashBtn.disabled = false;
+        flashBtn.textContent = '⚡ Select RPI-RP2 & flash';
+        setStatus(flashStatus, 'err', `✗ ${error.message}`);
+        appendLine(`[error]: ${error.message}`, 'serial-line-error');
+      }
+    });
+
+    provisionBtn.addEventListener('click', async () => {
+      let configurationAccepted = false;
+      provisionBtn.disabled = true;
+      provisionBtn.innerHTML = `<span class="spinner"></span> Connecting…`;
+      setStatus(provisionStatus, 'wait', 'Select the RP2040 serial device.');
+      appendLine('[info]: Requesting serial connection');
+
+      try {
+        const deviceInfo = await provisionRP2040(config, {
+          baudRate: 115200,
+          timeoutMs: 20000,
+          onLine: appendLine,
+        });
+        configurationAccepted = true;
+
+        provisionBtn.innerHTML = `<span class="spinner"></span> Verifying reboot…`;
+        setStatus(provisionStatus, 'wait', 'Configuration saved; verifying it after reboot…');
+        appendLine('[info]: Device accepted configuration and is rebooting');
+
+        await verifyRP2040Config(deviceInfo, {
+          timeoutMs: 15000,
+          onLine: appendLine,
+        });
+
+        provisionBtn.textContent = '✓ Configuration verified';
+        provisionBtn.style.background = 'var(--accent2)';
+        setStatus(provisionStatus, 'ok', '✓ config.json saved and loaded from LittleFS');
+        step3.classList.remove('active');
+        step3.classList.add('complete');
+        pageSub.textContent = 'Setup complete. The firmware and configuration are stored separately.';
+        appendLine('[info]: Device confirmed /config.json after reboot');
+      } catch (error) {
+        if (configurationAccepted) {
+          provisionBtn.textContent = '✓ Configuration sent';
+          setStatus(
+            provisionStatus,
+            'err',
+            `Configuration was accepted, but reboot verification failed: ${error.message}`
+          );
+        } else {
+          provisionBtn.disabled = false;
+          provisionBtn.textContent = '🔌 Connect & save configuration';
+          setStatus(provisionStatus, 'err', `✗ ${error.message}`);
         }
-      } catch(e) {
-        if (e.name !== 'NotFoundError') {
-          const div = document.createElement('div');
-          div.className = 'serial-line-error';
-          div.textContent = e.message.includes('already open')
-            ? '⚠ Port in use — close Arduino IDE Serial Monitor first, then try again.'
-            : `Error: ${e.message}`;
-          output.appendChild(div);
-        }
-        serialPort = null;
-        connectBtn.textContent = 'Connect';
-        connectBtn.style.borderColor = ''; connectBtn.style.color = '';
-      } finally {
-        isConnecting = false;
+        appendLine(`[error]: ${error.message}`, 'serial-line-error');
       }
     });
   }
@@ -839,16 +875,6 @@
 
     new ResizeObserver(reportHeight).observe(document.documentElement);
   })();
-
-  function reportHeight() {
-    var height = Math.max(
-      document.documentElement.scrollHeight,
-      document.body.scrollHeight
-    );
-    console.log("[mesonet-resize]", height, "→", PARENT_ORIGIN); // ← temporary
-    window.parent.postMessage({ type: "mesonet-flasher-resize", height: height }, PARENT_ORIGIN);
-  }
-  
 </script>
 
 
