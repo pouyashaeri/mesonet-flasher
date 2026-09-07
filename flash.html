@@ -134,16 +134,30 @@
         <div class="fstep-num">1</div>
         <div class="fstep-body">
           <div class="fstep-title">Enter BOOTSEL mode</div>
-          <div style="display:flex;gap:12px;margin-top:12px;flex-wrap:wrap;">
-            <div style="flex:1;min-width:180px;">
-              <img src="assets/bootsel.jpg" alt="BOOTSEL button location" style="border-radius:6px;border:1px solid var(--border);width:100%;max-height:200px;object-fit:cover;" />
-              <div class="fstep-desc">Hold the <strong>BOOTSEL</strong> button on your Feather, plug in the USB cable, then release. A drive named <span class="code">RPI-RP2</span> will appear in File Explorer.</div>
-            </div>
-            <div style="flex:1;min-width:180px;">
-              <img src="assets/explorer.jpg" alt="RPI-RP2 drive in File Explorer" style="border-radius:6px;border:1px solid var(--border);width:60%;max-height:200px;object-fit:cover;" />
-              <p style="font-size:12px;color:var(--muted);margin-top:6px;">The RPI-RP2 drive appears in your file explorer.</p>
+          <div style="display:flex;gap:12px;margin-top:12px;flex-wrap:nowrap;align-items:flex-start;">
+          <div style="flex:3 1 0;min-width:0;">
+            <img
+              src="assets/bootsel.jpg"
+              alt="BOOTSEL button location"
+              style="border-radius:6px;border:1px solid var(--border);width:100%;max-height:200px;object-fit:cover;display:block;"
+            />
+            <div class="fstep-desc" style="margin-top:5px;">
+              Hold the <strong>BOOTSEL</strong> button on your Feather, plug in the USB cable,
+              then release. A drive named <span class="code">RPI-RP2</span> will appear in File Explorer.
             </div>
           </div>
+
+          <div style="flex:1 1 0;min-width:0;">
+            <img
+              src="assets/explorer.jpg"
+              alt="RPI-RP2 drive in File Explorer"
+              style="border-radius:6px;border:1px solid var(--border);width:100%;max-height:200px;object-fit:cover;display:block;"
+            />
+            <p style="font-size:12px;color:var(--muted);margin-top:6px;">
+              The RPI-RP2 drive appears in your file explorer.
+            </p>
+          </div>
+        </div>
           <div class="fstep-action" id="bootselStatus">
             <span class="status-badge badge-wait">⏳ Waiting for RPI-RP2…</span>
           </div>
@@ -177,7 +191,7 @@
 
     <div class="serial-monitor">
       <div class="serial-header">
-        <span class="serial-title">📟 RP2040 provisioning log</span>
+        <span class="serial-title">📟 RP2040 setup log</span>
         <div class="serial-controls">
           <button class="btn-secondary" id="autoScrollBtn" title="Toggle auto-scroll" style="padding:5px 10px;font-size:11px;border-color:var(--accent2);color:var(--accent2);">⬇ Auto</button>
           <button class="btn-secondary" id="copySerial" title="Copy all output" style="padding:5px 10px;font-size:11px;">⎘ Copy</button>
