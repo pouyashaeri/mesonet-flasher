@@ -189,13 +189,13 @@ export async function provisionRP2040(
 
     await port.open({ baudRate });
     try {
-      await port.setSignals({ dataTerminalReady: false, requestToSend: false });
+      await port.setSignals({ dataTerminalReady: true, requestToSend: false });
     } catch (_) {
       // Not every Web Serial implementation exposes signal control.
     }
 
     // Give Windows and the freshly booted USB CDC interface time to settle.
-    await new Promise(resolve => setTimeout(resolve, 500));
+    await new Promise(resolve => setTimeout(resolve, 1000));
 
     writer = port.writable.getWriter();
     await writer.write(new TextEncoder().encode(`${command}\n`));
@@ -306,7 +306,7 @@ export async function verifyRP2040Config(
   try {
     port = await waitForAuthorizedRp2040(expectedInfo, timeoutMs);
     try {
-      await port.setSignals({ dataTerminalReady: false, requestToSend: false });
+      await port.setSignals({ dataTerminalReady: true, requestToSend: false });
     } catch (_) {}
 
     reader = port.readable.getReader();
