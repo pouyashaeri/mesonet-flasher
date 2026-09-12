@@ -213,8 +213,17 @@
 
 <main>
   <div class="page-title">Configure your station</div>
-  <p class="page-sub">Pick your hardware, fill in your details, and complete setup directly in the browser — no app or server required.</p>
-
+  <p class="page-sub">Pick your hardware, fill in your details, and complete setup directly in the browser.</p>
+  <div
+    role="note"
+    style="margin-bottom:24px;padding:12px 14px;border:1px solid var(--border);
+          border-radius:6px;background:#fdfdfd;color:#1f2328;
+          font-size:13px;line-height:1.5;"
+  >
+    <strong>Before you begin:</strong>
+    Do not connect your microcontroller to the computer yet.
+    First, complete the configuration form below. You’ll be prompted to connect it on the next screen.
+  </div>
   <!-- Device picker -->
   <div class="device-picker">
     <div class="device-card selected" id="pickRp2040" data-device="rp2040">
@@ -742,6 +751,10 @@
 
     function handleFile(file) {
       if (!file) return;
+      if (file.size > 64 * 1024) {
+        showError('The configuration file must be smaller than 64 KB.');
+        return;
+      }
       if (!file.name.toLowerCase().endsWith('.json')) {
         showError('Please upload a .json file.');
         return;
