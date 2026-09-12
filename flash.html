@@ -293,7 +293,7 @@
     getRp2040BrowserError,
     provisionRP2040,
     verifyRP2040Config,
-  } from './js/rp2040-flasher.js?v=6';
+  } from './js/rp2040-flasher.js?v=7';
   import { patchEsp32Bin } from './js/patch-esp32-bin.js';
 
   const setup  = JSON.parse(sessionStorage.getItem('iotwx_setup') || '{}');
@@ -451,40 +451,82 @@
 
     flashBtn.addEventListener('click', async () => {
       flashBtn.disabled = true;
-      flashBtn.innerHTML = `<span class="spinner"></span> Loading firmware…`;
-      setStatus(flashStatus, 'wait', 'Loading and validating the unchanged UF2…');
+      flashBtn.innerHTML =
+        `<span class="spinner"></span> Loading firmware…`;
+
+      setStatus(
+        flashStatus,
+        'wait',
+        'Loading and validating the unchanged UF2…'
+      );
+
       appendLine('[info]: Loading unchanged RP2040 firmware');
 
       try {
-        const firmware = await fetchRp2040Firmware(rp2040FirmwareUrl);
-        flashBtn.innerHTML = `<span class="spinner"></span> Select RPI-RP2…`;
-        setStatus(flashStatus, 'wait', 'Select the RPI-RP2 drive in the folder picker.');
+        const firmware =
+          await fetchRp2040Firmware(rp2040FirmwareUrl);
 
-        await flashRP2040viaFilesystem(firmware, (written, total) => {
-          if (written === total) appendLine('[info]: UF2 write completed');
-        });
+        flashBtn.innerHTML =
+          `<span class="spinner"></span> Select RPI-RP2…`;
+
+        setStatus(
+          flashStatus,
+          'wait',
+          'Select the RPI-RP2 drive in the folder picker.'
+        );
+
+        await flashRP2040viaFilesystem(
+          firmware,
+          (written, total) => {
+            if (written === total) {
+              appendLine('[info]: UF2 write completed');
+            }
+          }
+        );
 
         flashBtn.innerHTML = '✓ Firmware flashed';
         flashBtn.style.background = 'var(--accent2)';
-        setStatus(flashStatus, 'ok', '✓ Firmware written; the board is restarting');
+
+        setStatus(
+          flashStatus,
+          'ok',
+          '✓ Firmware written; the board is restarting'
+        );
+
         step2.classList.remove('active');
         step2.classList.add('complete');
         step3.classList.add('active');
 
-        setStatus(provisionStatus, 'wait', 'Wait for the RP2040 serial device to appear.');
-        const deviceInfo = await provisionRP2040(config, {
-          baudRate: 115200,
-          timeoutMs: 20000,
-          onLine: appendLine,
-          allowAnyUsbDevice: isGenericRp2040Test,
-        });
+        setStatus(
+          provisionStatus,
+          'wait',
+          'Wait for the RP2040 application to start…'
+        );
+
+        // Only wait here. Do not request a serial port automatically.
+        await new Promise(resolve => setTimeout(resolve, 15000));
+
         provisionBtn.disabled = false;
-        setStatus(provisionStatus, 'wait', 'Ready—connect to the restarted RP2040.');
+
+        setStatus(
+          provisionStatus,
+          'wait',
+          'Ready—click below and select the RP2040 serial device.'
+        );
       } catch (error) {
         flashBtn.disabled = false;
         flashBtn.textContent = '⚡ Select RPI-RP2 & flash';
-        setStatus(flashStatus, 'err', `✗ ${error.message}`);
-        appendLine(`[error]: ${error.message}`, 'serial-line-error');
+
+        setStatus(
+          flashStatus,
+          'err',
+          `✗ ${error.message}`
+        );
+
+        appendLine(
+          `[error]: ${error.message}`,
+          'serial-line-error'
+        );
       }
     });
 
@@ -500,6 +542,7 @@
           baudRate: 115200,
           timeoutMs: 20000,
           onLine: appendLine,
+          allowAnyUsbDevice: isGenericRp2040Test,
         });
         configurationAccepted = true;
 
