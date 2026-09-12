@@ -504,7 +504,28 @@
         );
 
         // Only wait here. Do not request a serial port automatically.
-        await new Promise(resolve => setTimeout(resolve, 3000));
+        for (let remaining = 3; remaining > 0; remaining--) {
+          provisionBtn.disabled = true;
+          provisionBtn.innerHTML =
+            `<span class="spinner"></span> Board restarting… ${remaining}s`;
+
+          setStatus(
+            provisionStatus,
+            'wait',
+            `Waiting for the RP2040 serial device… ${remaining}s`
+          );
+
+          await new Promise(resolve => setTimeout(resolve, 1000));
+        }
+
+        provisionBtn.disabled = false;
+        provisionBtn.innerHTML = '🔌 Connect & save configuration';
+
+        setStatus(
+          provisionStatus,
+          'wait',
+          'Ready—click below and select the RP2040 serial device.'
+        );
 
         provisionBtn.disabled = false;
 
