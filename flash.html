@@ -440,7 +440,7 @@
       return;
     }
 
-    bootselStatus.innerHTML = `<button class="btn-secondary" id="confirmBootsel">✓ RPI-RP2 is visible — continue</button>`;
+    bootselStatus.innerHTML = `<button class="btn-secondary" id="confirmBootsel">✓ RPI-RP2 is visible — Click to continue</button>`;
     document.getElementById('confirmBootsel').addEventListener('click', () => {
       setStatus(bootselStatus, 'ok', '✓ Board is in BOOTSEL mode');
       step1.classList.remove('active');
