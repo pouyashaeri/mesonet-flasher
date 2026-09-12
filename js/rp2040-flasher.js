@@ -70,25 +70,31 @@ export async function fetchRp2040Firmware(
 }
 
 async function verifyRp2040Drive(directoryHandle) {
-  const driveName = directoryHandle.name.toUpperCase();
-  if (!driveName.includes('RPI') && !driveName.includes('RP2')) {
-    throw new Error(`Select the RPI-RP2 drive, not "${directoryHandle.name}".`);
-  }
-
-  // The ROM BOOTSEL volume contains INFO_UF2.TXT. Requiring it prevents an
-  // accidental write to an unrelated folder whose name merely looks similar.
+  // Windows may report a selected drive root as "\" rather than "RPI-RP2".
+  // Therefore, identify an RP2040 BOOTSEL drive using INFO_UF2.TXT.
   try {
-    const infoHandle = await directoryHandle.getFileHandle('INFO_UF2.TXT');
+    const infoHandle =
+      await directoryHandle.getFileHandle('INFO_UF2.TXT');
+
     const infoFile = await infoHandle.getFile();
     const info = await infoFile.text();
+
     if (!/UF2|RP2040|RPI-RP2/i.test(info)) {
-      throw new Error('The selected drive is not an RP2040 BOOTSEL volume.');
+      throw new Error(
+        'The selected drive is not a valid RP2040 BOOTSEL volume.'
+      );
     }
   } catch (error) {
-    if (error.message === 'The selected drive is not an RP2040 BOOTSEL volume.') {
+    if (
+      error.message ===
+      'The selected drive is not a valid RP2040 BOOTSEL volume.'
+    ) {
       throw error;
     }
-    throw new Error('The selected folder does not contain RP2040 BOOTSEL files.');
+
+    throw new Error(
+      'Select the root of the RPI-RP2 drive. INFO_UF2.TXT was not found.'
+    );
   }
 }
 
