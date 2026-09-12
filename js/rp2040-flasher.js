@@ -8,7 +8,7 @@
 const UF2_MAGIC_START0 = 0x0A324655;
 const UF2_MAGIC_START1 = 0x9E5D5157;
 const UF2_MAGIC_END = 0x0AB16F30;
-const CONFIG_COMMAND = 'IOTWX_CONFIG ';
+const CONFIG_STATUS_COMMAND = 'IOTWX_CONFIG_STATUS\n';
 const CONFIG_LINE_MAX_BYTES = 2048;
 
 function readUint32LE(bytes, offset) {
@@ -155,13 +155,20 @@ function provisioningErrorMessage(responseLine) {
     INVALID_JSON: 'The device could not parse the configuration JSON.',
     INVALID_VALUES: 'The device rejected one or more configuration values.',
     WRITE_FAILED: 'The device could not write config.json to LittleFS.',
+    FILESYSTEM_FAILED: 'The device could not initialize LittleFS.',
+    NOT_LOADED: 'The saved config.json was not loaded after reboot.',
   };
   return messages[reason] || `The device rejected the configuration: ${reason}`;
 }
 
 export async function provisionRP2040(
   config,
-  { baudRate = 115200, timeoutMs = 20000, onLine } = {}
+  {
+    baudRate = 115200,
+    timeoutMs = 20000,
+    onLine,
+    allowAnyUsbDevice = false,
+  } = {}
 ) {
   const command = `${CONFIG_COMMAND}${JSON.stringify(config)}`;
   const commandBytes = new TextEncoder().encode(command);
@@ -177,9 +184,11 @@ export async function provisionRP2040(
 
   try {
     try {
-      port = await navigator.serial.requestPort({
-        filters: [{ usbVendorId: 0x239A }],
-      });
+      port = allowAnyUsbDevice
+        ? await navigator.serial.requestPort()
+        : await navigator.serial.requestPort({
+            filters: [{ usbVendorId: 0x239A }],
+          });
     } catch (error) {
       if (error.name === 'NotFoundError') {
         throw new Error('Serial device selection was cancelled.');
@@ -264,15 +273,26 @@ export async function provisionRP2040(
 }
 
 function matchesUsbDevice(port, expectedInfo) {
-  if (typeof port.getInfo !== 'function') return true;
+  if (typeof port.getInfo !== 'function') {
+    return true;
+  }
+
   const info = port.getInfo();
-  if (info.usbVendorId !== 0x239A) return false;
+
+  if (
+    expectedInfo?.usbVendorId !== undefined &&
+    info.usbVendorId !== expectedInfo.usbVendorId
+  ) {
+    return false;
+  }
+
   if (
     expectedInfo?.usbProductId !== undefined &&
     info.usbProductId !== expectedInfo.usbProductId
   ) {
     return false;
   }
+
   return true;
 }
 
@@ -298,18 +318,45 @@ async function waitForAuthorizedRp2040(expectedInfo, timeoutMs) {
 
 export async function verifyRP2040Config(
   expectedInfo,
-  { timeoutMs = 15000, onLine } = {}
+  { timeoutMs = 60000, onLine } = {}
 ) {
   let port;
   let reader;
+  let writer;
 
   try {
+    // The firmware sends its ACK before its delayed reboot.
+    // Wait so we do not accidentally reopen the old serial session.
+    await new Promise(resolve => setTimeout(resolve, 2500));
+
     port = await waitForAuthorizedRp2040(expectedInfo, timeoutMs);
+
     try {
-      await port.setSignals({ dataTerminalReady: true, requestToSend: false });
-    } catch (_) {}
+      await port.setSignals({
+        dataTerminalReady: true,
+        requestToSend: false,
+      });
+    } catch (_) {
+      // Signal control may not be supported.
+    }
+
+    await new Promise(resolve => setTimeout(resolve, 500));
+
+    // Explicitly ask the restarted firmware whether config.json loaded.
+    // This avoids depending on a startup message that may already be gone.
+    writer = port.writable.getWriter();
+
+    await writer.write(
+      new TextEncoder().encode(CONFIG_STATUS_COMMAND)
+    );
+
+    writer.releaseLock();
+    writer = null;
+
+    onLine?.('[sent configuration status request]');
 
     reader = port.readable.getReader();
+
     const decoder = new TextDecoder();
     const deadline = Date.now() + timeoutMs;
     let pending = '';
@@ -319,40 +366,68 @@ export async function verifyRP2040Config(
         reader,
         Math.max(1, deadline - Date.now())
       );
-      if (done) break;
+
+      if (done) {
+        break;
+      }
 
       pending += decoder.decode(value, { stream: true });
+
       const lines = pending.split(/\r?\n/);
       pending = lines.pop() || '';
 
       for (const rawLine of lines) {
         const line = rawLine.trim();
-        if (!line) continue;
+
+        if (!line) {
+          continue;
+        }
+
         onLine?.(line);
 
-        if (line.includes('[info]: Loaded /config.json')) {
+        if (
+          line === 'IOTWX_CONFIG_LOADED' ||
+          line.includes('[info]: Loaded /config.json')
+        ) {
           return;
         }
+
         if (
           line === 'IOTWX_PROVISION_READY' ||
           line.includes('Using hardcoded defaults') ||
           line.includes('Configuration validation failed')
         ) {
-          throw new Error('The RP2040 rebooted without loading the saved configuration.');
+          throw new Error(
+            'The RP2040 rebooted without loading the saved configuration.'
+          );
+        }
+
+        if (line.startsWith('IOTWX_CONFIG_ERROR')) {
+          throw new Error(provisioningErrorMessage(line));
         }
       }
     }
 
-    throw new Error('The RP2040 did not confirm loading /config.json after reboot.');
+    throw new Error(
+      'The RP2040 did not confirm loading /config.json after reboot.'
+    );
   } finally {
+    if (writer) {
+      try {
+        writer.releaseLock();
+      } catch (_) {}
+    }
+
     if (reader) {
       try {
         await reader.cancel();
       } catch (_) {}
+
       try {
         reader.releaseLock();
       } catch (_) {}
     }
+
     if (port) {
       try {
         await port.close();

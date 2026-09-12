@@ -293,12 +293,19 @@
     getRp2040BrowserError,
     provisionRP2040,
     verifyRP2040Config,
-  } from './js/rp2040-flasher.js?v=3';
+  } from './js/rp2040-flasher.js?v=4';
   import { patchEsp32Bin } from './js/patch-esp32-bin.js';
 
   const setup  = JSON.parse(sessionStorage.getItem('iotwx_setup') || '{}');
   const device = setup.device;
   const config = setup.config;
+
+  const isGenericRp2040Test =
+    new URLSearchParams(window.location.search).get('rp2040') === 'generic';
+
+  const rp2040FirmwareUrl = isGenericRp2040Test
+    ? 'firmware/generic_rp2040_test.uf2'
+    : 'firmware/mesonet_rp2040.uf2';
 
   const summaryEl = document.getElementById('configSummary');
   const pageSub   = document.getElementById('pageSub');
@@ -319,7 +326,11 @@
     pageSub.textContent = 'Flash one unchanged firmware image, then save your configuration separately in LittleFS.';
     const si = config.station_info;
     summaryEl.innerHTML = `
-      <span class="device-badge">📡 RP2040 LoRa</span>
+      <span class="device-badge">${
+        isGenericRp2040Test
+          ? '🧪 Generic RP2040 test'
+          : '📡 RP2040 LoRa'
+      }</span>
       <div class="config-card">
         <div class="config-dot"></div>
         <div class="config-info">
@@ -445,7 +456,7 @@
       appendLine('[info]: Loading unchanged RP2040 firmware');
 
       try {
-        const firmware = await fetchRp2040Firmware();
+        const firmware = await fetchRp2040Firmware(rp2040FirmwareUrl);
         flashBtn.innerHTML = `<span class="spinner"></span> Select RPI-RP2…`;
         setStatus(flashStatus, 'wait', 'Select the RPI-RP2 drive in the folder picker.');
 
@@ -461,7 +472,12 @@
         step3.classList.add('active');
 
         setStatus(provisionStatus, 'wait', 'Wait for the RP2040 serial device to appear.');
-        await new Promise(resolve => setTimeout(resolve, 2500));
+        const deviceInfo = await provisionRP2040(config, {
+          baudRate: 115200,
+          timeoutMs: 20000,
+          onLine: appendLine,
+          allowAnyUsbDevice: isGenericRp2040Test,
+        });
         provisionBtn.disabled = false;
         setStatus(provisionStatus, 'wait', 'Ready—connect to the restarted RP2040.');
       } catch (error) {
@@ -492,7 +508,7 @@
         appendLine('[info]: Device accepted configuration and is rebooting');
 
         await verifyRP2040Config(deviceInfo, {
-          timeoutMs: 15000,
+          timeoutMs: 60000,
           onLine: appendLine,
         });
 

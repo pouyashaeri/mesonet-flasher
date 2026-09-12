@@ -719,7 +719,10 @@
       sessionStorage.setItem('iotwx_setup', JSON.stringify({ device: 'esp32', config }));
     }
 
-    window.location.href = 'flash.html';
+    // Preserve generic RP2040 test mode when moving to the flashing page.
+    const flashPage = new URL('flash.html', window.location.href);
+    flashPage.search = window.location.search;
+    window.location.href = flashPage.href;
   });
   // ── Config JSON upload (drag & drop + click-to-browse) ──
   function setupDropzone(zoneId, inputId, filenameId, errorId, onParse) {
